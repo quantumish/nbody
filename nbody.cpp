@@ -1,6 +1,13 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#ifdef PYTHON
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/eigen.h>
+namespace py = pybind11;
+#endif
+
 #define GRAV_CONST (6.674 * pow(10,-11))
 
 class Body {
@@ -69,3 +76,23 @@ void Sim::update()
   }
   t+=dt;
 }
+
+#ifdef PYTHON
+PYBIND11_MODULE(astrosim, m) {
+  m.doc() = "Simulate exoplanets with C++.";
+  
+  py::class_<Matter>(m, "Matter")
+    .def(py::init<double, double, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>())
+    .def_readonly("mass", &Matter::mass)
+    .def_readonly("position", &Matter::position)
+    .def_readonly("velocity", &Matter::velocity)
+    .def_readonly("acceleration", &Matter::acceleration);
+  
+  py::class_<Universe>(m, "Universe")
+    .def(py::init<double>())
+    .def("add_body", &Universe::add_matter, py::arg("m"), py::arg("x"), py::arg("v"), py::arg("a"))
+    .def("update", &Universe::update)
+    .def_readonly("t", &Universe::ticks)
+    .def_readonly("bodies", &Universe::bodies);
+}
+#endif
