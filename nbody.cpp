@@ -60,22 +60,25 @@ void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector
 
 void Sim::calc_net_force(Body& body)
 {
-  for (Body other : bodies) {
+  for (Body& other : bodies) {
     if (body == other) continue;
     double distance = sqrt(pow(body.position[0] - other.position[0],2)+pow(body.position[1] - other.position[1],2))+pow(body.position[2] - other.position[2],2);
     double magnitude = (GRAV_CONST * body.mass * other.mass)/(pow(distance,2));
     body.net_force += (other.position - body.position).normalized() * magnitude;
-    std::cout << "DIST: " << distance << "\n" << "MAG: " << magnitude << "\n" << "NORM: \n" << (other.position - body.position).normalized() << "\n" << "UPDATE: \n" << (other.position - body.position).normalized() * magnitude << "\n\n\n";
+    //std::cout << "(" << GRAV_CONST << " * " << body.mass << " * " << other.mass << ")/" << distance << "^2 = " << magnitude << "\n";
+    //std::cout << distance << " " << magnitude << "\n" << (other.position - body.position).normalized() << "\n\n" << body.net_force << "\n\n\n\n";
   }
 }
 
 void Sim::update()
 {
-  for (Body body : bodies) {
-    calc_net_force(body);
+  for (Body& body : bodies) {
     body.position += body.velocity * dt;
+    calc_net_force(body);
     body.velocity += (body.net_force / body.mass) * dt;
-    body.net_force = {0,0,0};
+    body.net_force[0] = 0;
+    body.net_force[1] = 0;
+    body.net_force[2] = 0;
   }
   t+=dt;
 }
