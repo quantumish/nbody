@@ -1,6 +1,8 @@
 #include <vector>
 #include <Eigen/Dense>
 
+#define GRAV_CONST (6.674 * pow(10,-11))
+
 class Body {
 public:
   double mass;
@@ -9,6 +11,7 @@ public:
   Eigen::Vector3d acceleration;
   Eigen::Vector3d net_force;
   Body(double m, Eigen::Vector3d, x, Eigen::Vector3d v, Eigen::Vector3d a);
+  bool operator==(Body& other);
 };
 
 Body::Body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
@@ -18,20 +21,51 @@ Body::Body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
   assert(mass >= 0);
 }
 
+Body::operator==(Body& other)
+{
+  if (this == &other) return true;
+  else return false;
+}
 
-class Simulation {
+
+class Sim {
 public:
   std::vector<Body> bodies;
-  Simulation();
+  double dt;
+  double t = 0;
+  
+  Sim();
   void add_body(double m, Eigen::Vector3d, x, Eigen::Vector3d v, Eigen::Vector3d a);
+  void calc_net_force(Body body);
+  void update();
 };
   
-Simulation::Simulation()
+Sim::Sim(double delta_t)
+  :dt(delta_t)
 {
   __asm__("nop");
 }
 
-Simulation::add_body(double m, Eigen::Vector3d, x, Eigen::Vector3d v, Eigen::Vector3d a)
+void Sim::add_body(double m, Eigen::Vector3d, x, Eigen::Vector3d v, Eigen::Vector3d a)
 {
   bodies.emplace_back(m,x,v,a);
+}
+
+void Sim::calc_net_force(Body& body)
+{
+  for (Body other : bodies) {
+    if (body == other) continue;
+    double distance = sqrt(pow(body.position[0] - other.position[0],2)+pow(body.position[1] - other.position[1],2))+pow(body.position[2] - other.position[2],2);
+    body.net_force += (GRAV_CONST * body.mass * other.mass)/(pow(distance,2))
+  }
+}
+
+void Sim::update()
+{
+  for (Body body : bodies) {
+    body.position += body.velocity * dt;
+    body.velocity += (body.net_force / m) * dt;
+    body.net_force = {0,0,0};
+  }
+  t+=dt;
 }
