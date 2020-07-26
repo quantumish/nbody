@@ -20,6 +20,10 @@ bool Body::operator==(Body& other)
   else return false;
 }
 
+struct Node {
+  Body* bodies;
+  Node* children[8];
+};
   
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
   :dt(delta_t), force_method(fm), time_method(tm)
@@ -54,8 +58,29 @@ void Sim::direct_calc(Body& body)
   body.net_force = sum;
 }
 
+void Sim::get_box()
+{
+  for (Body& i : bodies) {
+    for (int i = 0; i < 3; i++) {
+      if (i.position[i] < bound_min[i]) bound_min[i] = i.position[i];
+      if (i.position[i] > bound_max[i]) bound_max[i] = i.position[i];
+    }
+  }
+}
+
+void Sim::check_for_planet(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
+{
+  
+}
+
+void Sim::generate_tree()
+{
+  
+}
+
 void Sim::tree_calc(Body& body)
 {
+  
 }
 
 void Sim::fmm_calc(Body& body)

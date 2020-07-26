@@ -16,6 +16,9 @@ enum ForceMethod {Direct, Tree, FMM, Mesh, P3M};
 enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
+  Eigen::Vector3d bound_min;
+  Eigen::Vector3d bound_max;
+  
   ForceMethod force_method;
   TimeMethod time_method;
   void direct_calc(Body& body);
