@@ -3,23 +3,47 @@ import matplotlib.pyplot as plt
 import time
 import nbody
 
+import math
 import random
 
-sim = nbody.Sim(1, nbody.Direct)
-times = []
-for i in range(100):
-    before = time.time()
-    for j in range(i):
-        sim.add_body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0])
-    for j in range(1):
-        sim.update()
-    after = time.time()
-    times.append(after-before)
-    print("Loop %s completed in %s seconds" % (i, after-before))
-plt.xlabel("Number of bodies in N-body simulation")
-plt.ylabel("Time per tick (s)")
-plt.plot(times)
-plt.show()
+def time_bench():
+    sim = nbody.Sim(1, nbody.Direct)
+    times = []
+    for i in range(100):
+        before = time.time()
+        for j in range(i):
+            sim.add_body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0])
+        for j in range(1):
+            sim.update()
+        after = time.time()
+        times.append(after-before)
+        print("Loop %s completed in %s seconds" % (i, after-before))
+    plt.xlabel("Number of bodies in N-body simulation")
+    plt.ylabel("Time per tick (s)")
+    plt.plot(times)
+    plt.show()
+
+def acc_bench():
+    errors = []
+    for i in range(100):
+        before = time.time()
+        sim1 = nbody.Sim(1, nbody.Direct)
+        sim1.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
+        sim1.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
+        sim2 = nbody.Sim(i, nbody.Direct)
+        sim2.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
+        sim2.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
+        for j in range (100):
+            sim1.update()
+            sim2.update()
+        errors.append(math.sqrt(pow(sim2.bodies[0].position[0] - sim1.bodies[0].position[0],2)+pow(sim2.bodies[0].position[1] - sim1.bodies[0].position[1],2))+pow(sim2.bodies[0].position[2] - sim1.bodies[0].position[2],2)/sim1.bodies[0].velocity)
+        after = time.time()
+        print("Loop %s completed in %s seconds" % (i, after-before))
+    plt.plot(errors)
+    plt.show()
+
+acc_bench()
+    
 # sim = nbody.Sim(1)
 # sim.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
 # sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])

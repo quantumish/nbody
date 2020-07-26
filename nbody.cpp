@@ -34,7 +34,8 @@ bool Body::operator==(Body& other)
   else return false;
 }
 
-enum ForceMethod {Direct, Tree};
+enum ForceMethod {Direct, Tree, FMM, Mesh, P3M};
+enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
   ForceMethod force_method;
@@ -78,6 +79,18 @@ void Sim::tree_calc(Body& body)
 {
 }
 
+void Sim::fmm_calc(Body& body)
+{
+}
+
+void Sim::mesh_calc(Body& body)
+{
+}
+
+void Sim::p3m_calc(Body& body)
+{
+}
+
 void Sim::calc_net_force(Body& body)
 {
   switch (force_method) {
@@ -104,6 +117,9 @@ PYBIND11_MODULE(nbody, m) {
   py::enum_<ForceMethod>(m, "ForceMethod")
     .value("Direct", ForceMethod::Direct)
     .value("Tree", ForceMethod::Tree)
+    .value("FMM", ForceMethod::FMM)
+    .value("Mesh", ForceMethod::Mesh)
+    .value("P3M", ForceMethod::P3M)
     .export_values();
   py::class_<Body>(m, "Body")
     .def(py::init<double, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>())
