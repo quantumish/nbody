@@ -45,29 +45,29 @@ def acc_bench():
     plt.ylabel("Approximate position error (m)")
     plt.show()
 
-acc_bench()
+def sample_orbit():
+    sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
+    sim.add_body(10**9, [0,10**5, 0], [1,0,0], [0,0,0])
+    sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
     
-# sim = nbody.Sim(1)
-# sim.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
-# sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
 
-# fig = plt.figure()
-# ax = plt.axes(projection='3d')
+    x1,x2=[],[]
+    y1,y2=[],[]
+    z1,z2=[],[]
+    for j in range(2300000):
+        if (j % 10000 == 0):
+            x1.append(sim.bodies[0].position[0])
+            y1.append(sim.bodies[0].position[1])
+            z1.append(sim.bodies[0].position[2])
+            x2.append(sim.bodies[1].position[0])
+            y2.append(sim.bodies[1].position[1])
+            z2.append(sim.bodies[1].position[2])
+        sim.update()
 
-# x1,x2,x3=[],[],[]
-# y1,y2,y3=[],[],[]
-# z1,z2,z3=[],[],[]
-# for j in range(1000):
-#    x1.append(sim.bodies[0].position[0])
-#    y1.append(sim.bodies[0].position[1])
-#    z1.append(sim.bodies[0].position[2])
-#    x2.append(sim.bodies[1].position[0])
-#    y2.append(sim.bodies[1].position[1])
-#    z2.append(sim.bodies[1].position[2])
-#    sim.update()
-
-# print (sim.bodies[0].net_force)
-# ax.scatter3D(x1, y1, z1, label="Planet");
-# ax.scatter3D(x2, y2, z2, label="Star");
-# plt.legend()
-# plt.show()
+    print (sim.bodies[0].net_force)
+    ax.scatter3D(x1, y1, z1, label="Planet");
+    ax.scatter3D(x2, y2, z2, label="Star");
+    plt.legend()
+    plt.show()
