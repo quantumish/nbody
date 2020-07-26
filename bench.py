@@ -6,8 +6,8 @@ import nbody
 import math
 import random
 
-def time_bench(method, methodstr):
-    sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
+def time_bench(fmethod, fmethodstr):
+    sim = nbody.Sim(1, fmethod, nbody.Euler)
     times = []
     for i in range(100):
         before = time.time()
@@ -20,7 +20,7 @@ def time_bench(method, methodstr):
         print("Loop %s completed in %s seconds" % (i, after-before))
     plt.xlabel("Number of bodies in N-body simulation")
     plt.ylabel("Time per tick (s)")
-    plt.plot(times)
+    plt.plot(times, label=fmethodstr)
 
 def acc_bench(tmethod, tmethodstr):
     errors = []
@@ -44,7 +44,7 @@ def acc_bench(tmethod, tmethodstr):
     plt.ylabel("Approximate position error (m)")
 
 def sample_orbit():
-    sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
+    sim = nbody.Sim(200, nbody.Direct, nbody.Leapfrog)
     sim.add_body(10**9, [0,10**5, 0], [1,0,0], [0,0,0])
     sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
     
@@ -54,8 +54,8 @@ def sample_orbit():
     x1,x2=[],[]
     y1,y2=[],[]
     z1,z2=[],[]
-    for j in range(2300000):
-        if (j % 10000 == 0):
+    for j in range(15000):
+        if (j % 100 == 0):
             x1.append(sim.bodies[0].position[0])
             y1.append(sim.bodies[0].position[1])
             z1.append(sim.bodies[0].position[2])
@@ -70,7 +70,9 @@ def sample_orbit():
     plt.legend()
     plt.show()
 
-acc_bench(nbody.Euler, "Euler")
-acc_bench(nbody.Leapfrog, "Leapfrog")
-plt.legend()
-plt.show()
+# acc_bench(nbody.Euler, "Euler")
+# acc_bench(nbody.Leapfrog, "Leapfrog")
+# plt.legend()
+# plt.show()
+
+#sample_orbit()
