@@ -7,7 +7,7 @@ import math
 import random
 
 def time_bench():
-    sim = nbody.Sim(1, nbody.Direct)
+    sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
     times = []
     for i in range(100):
         before = time.time()
@@ -27,19 +27,22 @@ def acc_bench():
     errors = []
     for i in range(100):
         before = time.time()
-        sim1 = nbody.Sim(1, nbody.Direct)
-        sim1.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
-        sim1.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
-        sim2 = nbody.Sim(i, nbody.Direct)
-        sim2.add_body(10**9, [0,10**5, 0], [300,0,0], [0,0,0])
-        sim2.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
-        for j in range (100):
+        bodies = []
+        for j in range(3):
+            bodies.append(nbody.Body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0]))
+        sim1 = nbody.Sim(1, nbody.Direct, nbody.Euler)
+        sim1.set_bodies(bodies)
+        sim2 = nbody.Sim(i, nbody.Direct, nbody.Euler)
+        sim2.set_bodies(bodies)
+        for j in range (1000):
             sim1.update()
             sim2.update()
-        errors.append(math.sqrt(pow(sim2.bodies[0].position[0] - sim1.bodies[0].position[0],2)+pow(sim2.bodies[0].position[1] - sim1.bodies[0].position[1],2))+pow(sim2.bodies[0].position[2] - sim1.bodies[0].position[2],2)/sim1.bodies[0].velocity)
+        errors.append(math.sqrt(pow(sim2.bodies[0].position[0] - sim1.bodies[0].position[0],2)+pow(sim2.bodies[0].position[1] - sim1.bodies[0].position[1],2)+pow(sim2.bodies[0].position[2] - sim1.bodies[0].position[2],2)))
         after = time.time()
         print("Loop %s completed in %s seconds" % (i, after-before))
     plt.plot(errors)
+    plt.xlabel("Size of timestep (s)")
+    plt.ylabel("Approximate position error (m)")
     plt.show()
 
 acc_bench()

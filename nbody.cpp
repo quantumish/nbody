@@ -39,21 +39,27 @@ enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
   ForceMethod force_method;
+  TimeMethod time_method;
   void direct_calc(Body& body);
   void tree_calc(Body& body);
+  void fmm_calc(Body& body);
+  void mesh_calc(Body& body);
+  void p3m_calc(Body& body);
   void calc_net_force(Body& body);
 public:
   std::vector<Body> bodies;
   double dt;
   double t = 0;
   
-  Sim(double delta_t, ForceMethod fm);
+  Sim(double delta_t, ForceMethod fm, TimeMethod tm);
   void add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a);
+  void add_body(Body body);
+  void set_bodies(std::vector<Body> new_bodies);
   void update();
 };
   
-Sim::Sim(double delta_t, ForceMethod fm)
-  :dt(delta_t), force_method(fm)
+Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
+  :dt(delta_t), force_method(fm), time_method(tm)
 {
   __asm__("nop");
 }
@@ -61,6 +67,16 @@ Sim::Sim(double delta_t, ForceMethod fm)
 void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
 {
   bodies.emplace_back(m,x,v,a);
+}
+
+void Sim::add_body(Body body)
+{
+  bodies.push_back(body);
+}
+
+void Sim::set_bodies(std::vector<Body> new_bodies)
+{
+  bodies = new_bodies;
 }
 
 void Sim::direct_calc(Body& body)
@@ -98,6 +114,12 @@ void Sim::calc_net_force(Body& body)
     direct_calc(body);
   case Tree:
     tree_calc(body);
+  case FMM:
+    fmm_calc(body);
+  case Mesh:
+    mesh_calc(body);
+  case P3M:
+    p3m_calc(body);
   }
 }
 
@@ -105,8 +127,15 @@ void Sim::update()
 {
   for (Body& body : bodies) {
     calc_net_force(body);
-    body.velocity += (body.net_force / body.mass) * dt;
-    body.position += body.velocity * dt;
+    switch (time_method) {
+    case Euler:
+      body.velocity += (body.net_force / body.mass) * dt;
+      body.position += body.velocity * dt;
+    case Leapfrog:
+      __asm__("nop");
+    case Hermite:
+      __asm__("nop");
+    }
   }
   t+=dt;
 }
@@ -121,6 +150,11 @@ PYBIND11_MODULE(nbody, m) {
     .value("Mesh", ForceMethod::Mesh)
     .value("P3M", ForceMethod::P3M)
     .export_values();
+  py::enum_<TimeMethod>(m, "TimeMethod")
+    .value("Euler", TimeMethod::Euler)
+    .value("Leapfrog", TimeMethod::Leapfrog)
+    .value("Hermite", TimeMethod::Hermite)
+    .export_values();
   py::class_<Body>(m, "Body")
     .def(py::init<double, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>())
     .def_readonly("mass", &Body::mass)
@@ -129,8 +163,10 @@ PYBIND11_MODULE(nbody, m) {
     .def_readonly("acceleration", &Body::acceleration)
     .def_readonly("net_force", &Body::net_force);
   py::class_<Sim>(m, "Sim")
-    .def(py::init<double, ForceMethod>())
-    .def("add_body", &Sim::add_body, py::arg("m"), py::arg("x"), py::arg("v"), py::arg("a"))
+    .def(py::init<double, ForceMethod, TimeMethod>())
+    .def("add_body", (void (Sim::*)(double,Eigen::Vector3d,Eigen::Vector3d,Eigen::Vector3d)) &Sim::add_body, py::arg("m"), py::arg("x"), py::arg("v"), py::arg("a"))
+    .def("add_body", (void (Sim::*)(Body)) &Sim::add_body, py::arg("body"))
+    .def("set_bodies", &Sim::set_bodies, py::arg("new_bodies"))
     .def("update", &Sim::update)
     .def_readonly("t", &Sim::t)
     .def_readonly("bodies", &Sim::bodies);
