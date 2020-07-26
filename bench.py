@@ -6,7 +6,7 @@ import nbody
 import math
 import random
 
-def time_bench():
+def time_bench(method, methodstr):
     sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
     times = []
     for i in range(100):
@@ -21,18 +21,17 @@ def time_bench():
     plt.xlabel("Number of bodies in N-body simulation")
     plt.ylabel("Time per tick (s)")
     plt.plot(times)
-    plt.show()
 
-def acc_bench():
+def acc_bench(tmethod, tmethodstr):
     errors = []
+    before = time.time()
+    bodies = []
+    for j in range(3):
+        bodies.append(nbody.Body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0]))
     for i in range(100):
-        before = time.time()
-        bodies = []
-        for j in range(3):
-            bodies.append(nbody.Body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0]))
         sim1 = nbody.Sim(1, nbody.Direct, nbody.Euler)
         sim1.set_bodies(bodies)
-        sim2 = nbody.Sim(i, nbody.Direct, nbody.Euler)
+        sim2 = nbody.Sim(i, nbody.Direct, tmethod)
         sim2.set_bodies(bodies)
         for j in range (1000):
             sim1.update()
@@ -40,10 +39,9 @@ def acc_bench():
         errors.append(math.sqrt(pow(sim2.bodies[0].position[0] - sim1.bodies[0].position[0],2)+pow(sim2.bodies[0].position[1] - sim1.bodies[0].position[1],2)+pow(sim2.bodies[0].position[2] - sim1.bodies[0].position[2],2)))
         after = time.time()
         print("Loop %s completed in %s seconds" % (i, after-before))
-    plt.plot(errors)
+    plt.plot(errors, label=tmethodstr)
     plt.xlabel("Size of timestep (s)")
     plt.ylabel("Approximate position error (m)")
-    plt.show()
 
 def sample_orbit():
     sim = nbody.Sim(1, nbody.Direct, nbody.Euler)
@@ -71,3 +69,8 @@ def sample_orbit():
     ax.scatter3D(x2, y2, z2, label="Star");
     plt.legend()
     plt.show()
+
+acc_bench(nbody.Euler, "Euler")
+acc_bench(nbody.Leapfrog, "Leapfrog")
+plt.legend()
+plt.show()

@@ -46,6 +46,7 @@ class Sim {
   void mesh_calc(Body& body);
   void p3m_calc(Body& body);
   void calc_net_force(Body& body);
+  void leapfrog_update(Body& body);
 public:
   std::vector<Body> bodies;
   double dt;
@@ -123,16 +124,28 @@ void Sim::calc_net_force(Body& body)
   }
 }
 
+void Sim::leapfrog_update(Body& body)
+{
+  body.position += (body.velocity * dt) + (0.5 * body.acceleration * pow(dt,2));
+  Eigen::Vector3d a_0 = body.acceleration;
+  calc_net_force(body);
+  body.acceleration = (body.net_force / body.mass);
+  body.velocity += 0.5 * (a_0 + body.acceleration) * dt;
+}
+
 void Sim::update()
 {
   for (Body& body : bodies) {
-    calc_net_force(body);
     switch (time_method) {
     case Euler:
-      body.velocity += (body.net_force / body.mass) * dt;
       body.position += body.velocity * dt;
+      body.velocity += body.acceleration * dt;
+      calc_net_force(body);
+      body.acceleration = (body.net_force / body.mass);
+      break;
     case Leapfrog:
-      __asm__("nop");
+      // TODO: The derivation of this scares me. It's probably a good idea to look at it more though...
+      leapfrog_update(body);
     case Hermite:
       __asm__("nop");
     }
