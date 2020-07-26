@@ -34,21 +34,25 @@ bool Body::operator==(Body& other)
   else return false;
 }
 
+enum ForceMethod {Direct, Tree};
 
 class Sim {
+  ForceMethod force_method;
+  void direct_calc(Body& body);
+  void tree_calc(Body& body);
+  void calc_net_force(Body& body);
 public:
   std::vector<Body> bodies;
   double dt;
   double t = 0;
   
-  Sim(double delta_t);
+  Sim(double delta_t, ForceMethod fm);
   void add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a);
-  void calc_net_force(Body& body);
   void update();
 };
   
-Sim::Sim(double delta_t)
-  :dt(delta_t)
+Sim::Sim(double delta_t, ForceMethod fm)
+  :dt(delta_t), force_method(fm)
 {
   __asm__("nop");
 }
@@ -58,7 +62,7 @@ void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector
   bodies.emplace_back(m,x,v,a);
 }
 
-void Sim::calc_net_force(Body& body)
+void Sim::direct_calc(Body& body)
 {
   Eigen::Vector3d sum = {0,0,0};
   for (Body& other : bodies) {
@@ -68,6 +72,20 @@ void Sim::calc_net_force(Body& body)
     sum += (other.position - body.position).normalized() * magnitude;
   }
   body.net_force = sum;
+}
+
+void Sim::tree_calc(Body& body)
+{
+}
+
+void Sim::calc_net_force(Body& body)
+{
+  switch (force_method) {
+  case Direct:
+    direct_calc(body);
+  case Tree:
+    tree_calc(body);
+  }
 }
 
 void Sim::update()
@@ -83,7 +101,10 @@ void Sim::update()
 #ifdef PYTHON
 PYBIND11_MODULE(nbody, m) {
   m.doc() = "Simulate exoplanets with C++.";
-  
+  py::enum_<ForceMethod>(m, "ForceMethod")
+    .value("Direct", ForceMethod::Direct)
+    .value("Tree", ForceMethod::Tree)
+    .export_values();
   py::class_<Body>(m, "Body")
     .def(py::init<double, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d>())
     .def_readonly("mass", &Body::mass)
@@ -91,9 +112,8 @@ PYBIND11_MODULE(nbody, m) {
     .def_readonly("velocity", &Body::velocity)
     .def_readonly("acceleration", &Body::acceleration)
     .def_readonly("net_force", &Body::net_force);
-  
   py::class_<Sim>(m, "Sim")
-    .def(py::init<double>())
+    .def(py::init<double, ForceMethod>())
     .def("add_body", &Sim::add_body, py::arg("m"), py::arg("x"), py::arg("v"), py::arg("a"))
     .def("update", &Sim::update)
     .def_readonly("t", &Sim::t)

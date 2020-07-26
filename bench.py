@@ -5,7 +5,7 @@ import nbody
 
 import random
 
-sim = nbody.Sim(1)
+sim = nbody.Sim(1, nbody.Direct)
 times = []
 for i in range(100):
     before = time.time()
@@ -16,6 +16,8 @@ for i in range(100):
     after = time.time()
     times.append(after-before)
     print("Loop %s completed in %s seconds" % (i, after-before))
+plt.xlabel("Number of bodies in N-body simulation")
+plt.ylabel("Time per tick (s)")
 plt.plot(times)
 plt.show()
 # sim = nbody.Sim(1)
