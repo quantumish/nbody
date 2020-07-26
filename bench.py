@@ -44,7 +44,7 @@ def acc_bench(tmethod, tmethodstr):
     plt.ylabel("Approximate position error (m)")
 
 def sample_orbit():
-    sim = nbody.Sim(200, nbody.Direct, nbody.Leapfrog)
+    sim = nbody.Sim(200, nbody.Tree, nbody.Leapfrog)
     sim.add_body(10**9, [0,10**5, 0], [1,0,0], [0,0,0])
     sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
     
@@ -75,4 +75,4 @@ def sample_orbit():
 # plt.legend()
 # plt.show()
 
-#sample_orbit()
+sample_orbit()

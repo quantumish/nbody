@@ -21,7 +21,7 @@ bool Body::operator==(Body& other)
 }
 
 struct Node {
-  Body* bodies;
+  std::vector<Body*> bodies;
   Node* children[8];
 };
   
@@ -61,26 +61,34 @@ void Sim::direct_calc(Body& body)
 void Sim::get_box()
 {
   for (Body& i : bodies) {
-    for (int i = 0; i < 3; i++) {
-      if (i.position[i] < bound_min[i]) bound_min[i] = i.position[i];
-      if (i.position[i] > bound_max[i]) bound_max[i] = i.position[i];
+    for (int j = 0; j < 3; j++) {
+      if (i.position[j] < bound_min[j]) bound_min[j] = i.position[j];
+      if (i.position[j] > bound_max[j]) bound_max[j] = i.position[j];
     }
   }
 }
 
-void Sim::check_for_planet(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
+void Sim::check_for_planet(Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 {
-  
+  for (Body& i : bodies) {
+    if (i.position < corner2 || i.position > corner1) node.bodies.push_back(i);
+  }
 }
 
 void Sim::generate_tree()
 {
-  
+  get_box();
+  struct Node head = {};
+  struct Node current = head;
+  for (int i = 0; i < 3; i++) {
+    double distance = sqrt(pow(bound_max[0] - bound_min[0],2)+pow(bound_max[1] - bound_min[1],2))+pow(bound_max[2] - bound_min[2],2);
+    *current.children = {}
+  }
 }
 
 void Sim::tree_calc(Body& body)
 {
-  
+  generate_tree();
 }
 
 void Sim::fmm_calc(Body& body)
