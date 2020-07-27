@@ -84,14 +84,10 @@ void Sim::generate_tree()
   Eigen::Vector3d box_min = bound_min;
   for (int i = 0; i < 3; i++) {
     double distance = sqrt(pow(box_max[0] - box_min[0],2)+pow(box_max[1] - box_min[1],2))+pow(box_max[2] - box_min[2],2);
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
-        for (int h = 0; h < 2; h++) {
-
-        }
-      }
+    check_for_planet(*current.children[0], box_min, box_min+(distance/2));
+    for (Body& j : current.children[0]->bodies) {
+      std::cout << j.mass << "\n";
     }
-  }
 }
 
 void Sim::tree_calc(Body& body)

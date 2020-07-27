@@ -19,7 +19,7 @@ class Sim {
   Eigen::Vector3d bound_min;
   Eigen::Vector3d bound_max;
   void get_box();
-  void check_for_planet(Eigen::Vector3d corner1, Eigen::Vector3d corner2);
+  void check_for_planet(Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
   void generate_tree();
   
   ForceMethod force_method;
