@@ -19,11 +19,6 @@ bool Body::operator==(Body& other)
   if (this == &other) return true;
   else return false;
 }
-
-struct Node {
-  std::vector<Body*> bodies;
-  Node* children[8];
-};
   
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
   :dt(delta_t), force_method(fm), time_method(tm)
@@ -68,10 +63,16 @@ void Sim::get_box()
   }
 }
 
-void Sim::check_for_planet(Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
+void Sim::check_for_planet(struct Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 {
-  for (Body& i : bodies) {
-    if (i.position < corner2 || i.position > corner1) node.bodies.push_back(i);
+  for (Body i : bodies) {
+    bool greater;
+    bool less;
+    for (int j = 0; j < 3; j++) {
+      if (i.position[j] < corner1[j]) less = false;
+      if (i.position[j] > corner2[j]) greater = false;
+    }
+    if (less && greater) node.bodies.push_back(&i);
   }
 }
 
@@ -82,17 +83,22 @@ void Sim::generate_tree()
   struct Node current = head;
   Eigen::Vector3d box_max = bound_max;
   Eigen::Vector3d box_min = bound_min;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 1; i++) {
     double distance = sqrt(pow(box_max[0] - box_min[0],2)+pow(box_max[1] - box_min[1],2))+pow(box_max[2] - box_min[2],2);
-    check_for_planet(*current.children[0], box_min, box_min+(distance/2));
-    for (Body& j : current.children[0]->bodies) {
-      std::cout << j.mass << "\n";
+    std::vector<Body*> empty;
+    Node temp = {empty, NULL};
+    current.children[0] = &temp;
+    check_for_planet(*current.children[0], box_min, (box_min.array()+(distance/2)).matrix());
+    for (Body* j : current.children[0]->bodies) {
+      std::cout << j->mass << " MASS? \n";
     }
+  }
 }
 
 void Sim::tree_calc(Body& body)
 {
   generate_tree();
+  assert(1<0);
 }
 
 void Sim::fmm_calc(Body& body)
