@@ -21,7 +21,7 @@ bool Body::operator==(Body& other)
 }
   
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
-  :dt(delta_t), force_method(fm), time_method(tm)
+  :dt(delta_t), force_method(fm), time_method(tm), bound_max{0,0,0}, bound_min{0,0,0}
 {
   __asm__("nop");
 }
@@ -43,6 +43,7 @@ void Sim::set_bodies(std::vector<Body> new_bodies)
 
 void Sim::direct_calc(Body& body)
 {
+  get_box();
   Eigen::Vector3d sum = {0,0,0};
   for (Body& other : bodies) {
     if (body == other) continue;
@@ -66,20 +67,28 @@ void Sim::get_box()
 void Sim::check_for_planet(struct Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 {
   for (Body i : bodies) {
-    bool greater;
-    bool less;
+    bool greater = true;
+    bool less = true;
     for (int j = 0; j < 3; j++) {
-      if (i.position[j] < corner1[j]) less = false;
-      if (i.position[j] > corner2[j]) greater = false;
+      std::cout << i.position[j] << " vs. " << corner1[j] << " and " << corner2[j] << "\n";
+      if (i.position[j] < corner1[j]) {
+        std::cout << "Failed LESS!\n";
+        less = false;
+      }
+      if (i.position[j] > corner2[j]) {
+        std::cout << "Failed GREATER!\n";
+        greater = false;
+      }
     }
-    if (less && greater) node.bodies.push_back(&i);
+    if (less && greater) {
+      std::cout << "Ladies and gentlemen... we got 'em\n";
+      node.bodies.push_back(&i);
+    }
   }
 }
 
-void Sim::generate_tree()
+void Sim::generate_tree(struct Node head)
 {
-  get_box();
-  struct Node head = {};
   struct Node current = head;
   Eigen::Vector3d box_max = bound_max;
   Eigen::Vector3d box_min = bound_min;
@@ -97,7 +106,9 @@ void Sim::generate_tree()
 
 void Sim::tree_calc(Body& body)
 {
-  generate_tree();
+  get_box();
+  struct Node head = {};
+  generate_tree(head);
   assert(1<0);
 }
 
@@ -118,14 +129,19 @@ void Sim::calc_net_force(Body& body)
   switch (force_method) {
   case Direct:
     direct_calc(body);
+    break;
   case Tree:
     tree_calc(body);
+    break;
   case FMM:
     fmm_calc(body);
+    break;
   case Mesh:
     mesh_calc(body);
+    break;
   case P3M:
     p3m_calc(body);
+    break;
   }
 }
 
@@ -187,6 +203,8 @@ PYBIND11_MODULE(nbody, m) {
     .def("set_bodies", &Sim::set_bodies, py::arg("new_bodies"))
     .def("update", &Sim::update)
     .def_readonly("t", &Sim::t)
+    .def_readonly("bound_max", &Sim::bound_max)
+    .def_readonly("bound_min", &Sim::bound_min)
     .def_readonly("bodies", &Sim::bodies);
 }
 #endif

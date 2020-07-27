@@ -21,11 +21,9 @@ enum ForceMethod {Direct, Tree, FMM, Mesh, P3M};
 enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
-  Eigen::Vector3d bound_min;
-  Eigen::Vector3d bound_max;
   void get_box();
   void check_for_planet(struct Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2);
-  void generate_tree();
+  void generate_tree(struct Node head);
   
   ForceMethod force_method;
   TimeMethod time_method;
@@ -37,6 +35,8 @@ class Sim {
   void calc_net_force(Body& body);
   void leapfrog_update(Body& body);
 public:
+  Eigen::Vector3d bound_min;
+  Eigen::Vector3d bound_max;
   std::vector<Body> bodies;
   double dt;
   double t = 0;

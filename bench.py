@@ -11,7 +11,7 @@ def time_bench(fmethod, fmethodstr):
     times = []
     for i in range(100):
         before = time.time()
-        for j in range(i):
+        for j in range(i+10):
             sim.add_body(random.randrange(10**5, 10**25, 10**3), [random.randrange(-10**10, 10**10, 10**3),random.randrange(-10**10, 10**10, 10**3), random.randrange(-10**10, 10**10, 10**3)], [random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10),random.randrange(-10**4, 10**4, 10)], [0,0,0])
         for j in range(1):
             sim.update()
@@ -55,7 +55,7 @@ def sample_orbit():
     y1,y2=[],[]
     z1,z2=[],[]
     for j in range(15000):
-        if (j % 100 == 0):
+        if (j % 15000-1 == 0):
             x1.append(sim.bodies[0].position[0])
             y1.append(sim.bodies[0].position[1])
             z1.append(sim.bodies[0].position[2])
@@ -67,6 +67,8 @@ def sample_orbit():
     print (sim.bodies[0].net_force)
     ax.scatter3D(x1, y1, z1, label="Planet");
     ax.scatter3D(x2, y2, z2, label="Star");
+    ax.scatter3D(sim.bound_max[0], sim.bound_max[1], sim.bound_max[2], label="Bound (Max)")
+    ax.scatter3D(sim.bound_min[0], sim.bound_min[1], sim.bound_min[2], label="Bound (Min)")
     plt.legend()
     plt.show()
 
@@ -75,4 +77,5 @@ def sample_orbit():
 # plt.legend()
 # plt.show()
 
+#time_bench(nbody.Tree, "Tree")
 sample_orbit()
