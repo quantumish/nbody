@@ -80,9 +80,17 @@ void Sim::generate_tree()
   get_box();
   struct Node head = {};
   struct Node current = head;
+  Eigen::Vector3d box_max = bound_max;
+  Eigen::Vector3d box_min = bound_min;
   for (int i = 0; i < 3; i++) {
-    double distance = sqrt(pow(bound_max[0] - bound_min[0],2)+pow(bound_max[1] - bound_min[1],2))+pow(bound_max[2] - bound_min[2],2);
-    *current.children = {}
+    double distance = sqrt(pow(box_max[0] - box_min[0],2)+pow(box_max[1] - box_min[1],2))+pow(box_max[2] - box_min[2],2);
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 2; k++) {
+        for (int h = 0; h < 2; h++) {
+
+        }
+      }
+    }
   }
 }
 
