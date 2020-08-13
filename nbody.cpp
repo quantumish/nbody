@@ -55,14 +55,17 @@ void Sim::direct_calc(Body& body)
     body.net_force = sum;
 }
 
-void Sim::create_box()
+struct Node Sim::init_head()
 {
+    struct Node head = {{0,0,0}, {0,0,0}, 0, {0,0,0}, nullptr};
+    head.children = malloc(8*sizeof(struct Node));
     for (Body& i : bodies) {
         for (int j = 0; j < 3; j++) {
-            if (i.position[j] < bound_min[j]) bound_min[j] = i.position[j];
-            if (i.position[j] > bound_max[j]) bound_max[j] = i.position[j];
+            if (i.position[j] < head.min[j]) head.min[j] = i.position[j];
+            if (i.position[j] > head.max[j]) head.max[j] = i.position[j];
         }
     }
+    return head;
 }
 
 // TODO: Fix variable names -m It's too confusing.
@@ -81,9 +84,10 @@ int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
     return num_bodies;
 }
 
-void Sim::make_child(struct Node head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
+void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
 {
-    struct Node child = {0,{0,0,0},{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}};
+    struct Node child = {{0,0,0}, {0,0,0}, 0, {0,0,0}, nullptr};
+    child.children = malloc(8*sizeof(struct Node));
     for (Body i : bodies) {
         bool inside = true;
         for (int j = 0; j < 3; j++) {
@@ -100,7 +104,7 @@ void Sim::make_child(struct Node head, int iter, Eigen::Vector3d min, Eigen::Vec
     head.children[iter] = child;
 }
 
-void Sim::generate_tree(struct Node head)
+void Sim::generate_tree(struct Node& head)
 {
     if (check_bodies(head.min, head.max) < 2) return;
     Eigen::Vector3d peturb = (head.max - head.min)/2;
@@ -111,20 +115,17 @@ void Sim::generate_tree(struct Node head)
             start[1] += peturb[1] * j;
             for (int k = 0; k < 2; k++) {
                 start[0] += peturb[0] * k;
-                make_child(head, i+j+k, start, start+perturb);
+                std::cout << start - head.min << "\n";
+                //make_child(head, i+j+k, start, start+perturb);
                 //generate_tree(head[i+j+k-1]);
             }            
         }
-        current.children[0] = &temp;
-        check_for_planet(*current.children[0], box_min, (box_min.array()+(distance/2)).matrix());
-        check_for_planet(*current.children[1], box_min, (box_min.array()+(distance/2)).matrix());
     }
 }
 
 void Sim::tree_calc(Body& body)
 {
-    get_box();
-    struct Node head = {};
+    struct Node head = init_head();
     generate_tree(head);
     assert(1<0);
 }
