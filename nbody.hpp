@@ -13,8 +13,9 @@ public:
 };
 
 struct Node {
-  std::vector<Body*> bodies;
-  Node* children[8];
+    Eigen::Vector3d center;
+    double mass;
+    Node* children[8];
 };
 
 enum ForceMethod {Direct, Tree, FMM, Mesh, P3M};
@@ -22,7 +23,7 @@ enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
   void get_box();
-  void check_for_planet(struct Node node, Eigen::Vector3d corner1, Eigen::Vector3d corner2);
+  void check_for_planet(struct Node& node, Eigen::Vector3d corner1, Eigen::Vector3d corner2);
   void generate_tree(struct Node head);
   
   ForceMethod force_method;
