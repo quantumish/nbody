@@ -45,7 +45,7 @@ def acc_bench(tmethod, tmethodstr):
 
 def sample_orbit():
     sim = nbody.Sim(200, nbody.Tree, nbody.Leapfrog)
-    sim.add_body(10**9, [0,10**5, 0], [1,0,0], [0,0,0])
+    sim.add_body(10**9, [0,10**5, 10], [1,0,0], [0,0,0])
     sim.add_body(10**15, [0,0,0], [0,0,0], [0,0,0])
     
     fig = plt.figure()
@@ -55,7 +55,7 @@ def sample_orbit():
     y1,y2=[],[]
     z1,z2=[],[]
     for j in range(15000):
-        if (j % 15000-1 == 0):
+        if (j % 10 == 0):
             x1.append(sim.bodies[0].position[0])
             y1.append(sim.bodies[0].position[1])
             z1.append(sim.bodies[0].position[2])
@@ -67,8 +67,6 @@ def sample_orbit():
     #print (sim.bodies[0].net_force)
     ax.scatter3D(x1, y1, z1, label="Planet");
     ax.scatter3D(x2, y2, z2, label="Star");
-    ax.scatter3D(sim.bound_max[0], sim.bound_max[1], sim.bound_max[2], label="Bound (Max)")
-    ax.scatter3D(sim.bound_min[0], sim.bound_min[1], sim.bound_min[2], label="Bound (Min)")
     plt.legend()
     plt.show()
 

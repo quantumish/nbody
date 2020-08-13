@@ -106,18 +106,17 @@ void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Ve
 void Sim::generate_tree(struct Node& head)
 {
     if (check_bodies(head.min, head.max) < 2) return;
-    Eigen::Vector3d peturb = (head.max - head.min)/2;
-    std::cout << "peturb for ref:\n" << peturb << "\n\n";
+    Eigen::Vector3d perturb = (head.max - head.min)/2;
     for (int i = 0; i < 2; i++) {
-        Eigen::Vector3d start = head.min;
-        start[2] += peturb[2] * i;
+        Eigen::Vector3d start = {0,0,0};
+        start[2] = head.min[2] + perturb[2] * i;
         for (int j = 0; j < 2; j++) {
-            start[1] += peturb[1] * j;
+            start[1] = head.min[1] + perturb[1] * j;
             for (int k = 0; k < 2; k++) {
-                start[0] += peturb[0] * k;
-                std::cout << "iter " << i+j+k << "\n" << start - head.min << "\n\n";
-                //make_child(head, i+j+k, start, start+perturb);
-                //generate_tree(head[i+j+k]);
+                start[0] = head.min[0] + perturb[0] * k;
+                int iter = (i * 4) + (j * 2) + k;
+                make_child(head, iter, start, start+perturb);
+                generate_tree(head.children[iter]);
             }            
         }
     }
