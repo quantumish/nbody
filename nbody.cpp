@@ -22,7 +22,7 @@ bool Body::operator==(Body& other)
 }
   
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
-    :dt(delta_t), force_method(fm), time_method(tm), bound_max{0,0,0}, bound_min{0,0,0}
+    :dt(delta_t), force_method(fm), time_method(tm)
 {
     __asm__("nop");
 }
@@ -44,7 +44,6 @@ void Sim::set_bodies(std::vector<Body> new_bodies)
 
 void Sim::direct_calc(Body& body)
 {
-    get_box();
     Eigen::Vector3d sum = {0,0,0};
     for (Body& other : bodies) {
         if (body == other) continue;
@@ -57,8 +56,8 @@ void Sim::direct_calc(Body& body)
 
 struct Node Sim::init_head()
 {
-    struct Node head = {{0,0,0}, {0,0,0}, 0, {0,0,0}, nullptr};
-    head.children = malloc(8*sizeof(struct Node));
+    struct Node head = {{0,0,0}, {0,0,0}, {0,0,0}, 0, nullptr};
+    head.children = (struct Node*)malloc(8*sizeof(struct Node));
     for (Body& i : bodies) {
         for (int j = 0; j < 3; j++) {
             if (i.position[j] < head.min[j]) head.min[j] = i.position[j];
@@ -86,13 +85,13 @@ int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 
 void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
 {
-    struct Node child = {{0,0,0}, {0,0,0}, 0, {0,0,0}, nullptr};
-    child.children = malloc(8*sizeof(struct Node));
+    struct Node child = {{0,0,0}, {0,0,0}, {0,0,0}, 0, nullptr};
+    child.children = (struct Node*)malloc(8*sizeof(struct Node));
     for (Body i : bodies) {
         bool inside = true;
         for (int j = 0; j < 3; j++) {
-            if (i.position[j] < corner1[j]) inside = false;
-            if (i.position[j] > corner2[j]) inside = false;
+            if (i.position[j] < min[j]) inside = false;
+            if (i.position[j] > max[j]) inside = false;
         }
         if (inside) {
             child.mass += i.mass;
@@ -108,6 +107,7 @@ void Sim::generate_tree(struct Node& head)
 {
     if (check_bodies(head.min, head.max) < 2) return;
     Eigen::Vector3d peturb = (head.max - head.min)/2;
+    std::cout << "peturb for ref:\n" << peturb << "\n\n";
     for (int i = 0; i < 2; i++) {
         Eigen::Vector3d start = head.min;
         start[2] += peturb[2] * i;
@@ -115,9 +115,9 @@ void Sim::generate_tree(struct Node& head)
             start[1] += peturb[1] * j;
             for (int k = 0; k < 2; k++) {
                 start[0] += peturb[0] * k;
-                std::cout << start - head.min << "\n";
+                std::cout << "iter " << i+j+k << "\n" << start - head.min << "\n\n";
                 //make_child(head, i+j+k, start, start+perturb);
-                //generate_tree(head[i+j+k-1]);
+                //generate_tree(head[i+j+k]);
             }            
         }
     }
@@ -221,8 +221,6 @@ PYBIND11_MODULE(nbody, m) {
         .def("set_bodies", &Sim::set_bodies, py::arg("new_bodies"))
         .def("update", &Sim::update)
         .def_readonly("t", &Sim::t)
-        .def_readonly("bound_max", &Sim::bound_max)
-        .def_readonly("bound_min", &Sim::bound_min)
         .def_readonly("bodies", &Sim::bodies);
 }
 #endif

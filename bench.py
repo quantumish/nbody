@@ -64,7 +64,7 @@ def sample_orbit():
             z2.append(sim.bodies[1].position[2])
         sim.update()
 
-    print (sim.bodies[0].net_force)
+    #print (sim.bodies[0].net_force)
     ax.scatter3D(x1, y1, z1, label="Planet");
     ax.scatter3D(x2, y2, z2, label="Star");
     ax.scatter3D(sim.bound_max[0], sim.bound_max[1], sim.bound_max[2], label="Bound (Max)")
