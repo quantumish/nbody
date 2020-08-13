@@ -65,7 +65,8 @@ void Sim::create_box()
     }
 }
 
-int Sim::check_bodies(struct Node& node, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
+// TODO: Fix variable names -m It's too confusing.
+int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 {
     int num_bodies = 0;
     for (Body i : bodies) {
@@ -80,19 +81,43 @@ int Sim::check_bodies(struct Node& node, Eigen::Vector3d corner1, Eigen::Vector3
     return num_bodies;
 }
 
+void Sim::make_child(struct Node head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
+{
+    struct Node child = {0,{0,0,0},{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}};
+    for (Body i : bodies) {
+        bool inside = true;
+        for (int j = 0; j < 3; j++) {
+            if (i.position[j] < corner1[j]) inside = false;
+            if (i.position[j] > corner2[j]) inside = false;
+        }
+        if (inside) {
+            child.mass += i.mass;
+            child.center += i.mass * i.position;
+        }
+    }
+    // TODO: Investigate whether this has any real consequences if there are no bodies
+    child.center /= child.mass;
+    head.children[iter] = child;
+}
+
 void Sim::generate_tree(struct Node head)
 {
-    struct Node current = head;
-    Eigen::Vector3d box_max = bound_max;
-    Eigen::Vector3d box_min = bound_min;
-    for (int i = 0; i < 1; i++) {
-        double distance = sqrt(pow(box_max[0] - box_min[0],2)+pow(box_max[1] - box_min[1],2))+pow(box_max[2] - box_min[2],2);
-        std::vector<Body*> empty;
-        Node temp = {empty, NULL};
+    if (check_bodies(head.min, head.max) < 2) return;
+    Eigen::Vector3d peturb = (head.max - head.min)/2;
+    for (int i = 0; i < 2; i++) {
+        Eigen::Vector3d start = head.min;
+        start[2] += peturb[2] * i;
+        for (int j = 0; j < 2; j++) {
+            start[1] += peturb[1] * j;
+            for (int k = 0; k < 2; k++) {
+                start[0] += peturb[0] * k;
+                make_child(head, i+j+k, start, start+perturb);
+                //generate_tree(head[i+j+k-1]);
+            }            
+        }
         current.children[0] = &temp;
         check_for_planet(*current.children[0], box_min, (box_min.array()+(distance/2)).matrix());
         check_for_planet(*current.children[1], box_min, (box_min.array()+(distance/2)).matrix());
-        std::cout << current.children[0]->bodies.size() << "\n";
     }
 }
 
