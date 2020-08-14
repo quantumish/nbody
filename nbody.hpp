@@ -31,7 +31,6 @@ class Sim {
     void make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max);
     void generate_tree(struct Node& head);
 
-    struct Node head;
     ForceMethod force_method;
     TimeMethod time_method;
     void direct_calc(Body& body);

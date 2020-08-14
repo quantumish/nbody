@@ -26,10 +26,7 @@ bool Body::operator==(Body& other)
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
     :dt(delta_t), force_method(fm), time_method(tm), t(0)
 {
-    if (fm == Tree) {
-        head = init_head();
-        generate_tree(head);
-    }
+    __asm__("nop");
 }
 
 void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
@@ -153,15 +150,17 @@ void Sim::generate_tree(struct Node& head)
 
 void Sim::tree_calc(Body& body, Node& current, Eigen::Vector3d sum)
 {
+    //std::cout << check_bodies(current.min, current.max) << " " << current.mass << "\n";
     double distance = sqrt(pow(body.position[0] - current.center[0],2)+pow(body.position[1] - current.center[1],2))+pow(body.position[2] - current.center[2],2);
-    if (distance < DIST_THRESHOLD && current.children != nullptr) {
+    if (distance > DIST_THRESHOLD && current.children != nullptr) {
         for (int i = 0; i < 8; i++) tree_calc(body, current.children[i], sum);
     }
     else {
         double magnitude = (GRAV_CONST * body.mass * current.mass)/(pow(distance,2));
         sum += (current.center - body.position).normalized() * magnitude;
         body.net_force = sum;
-    }    
+        //std::cout << sum << "\n\n" << body.net_force << "\n\n\n";
+    }
 }
 
 void Sim::fmm_calc(Body& body)
@@ -178,12 +177,16 @@ void Sim::p3m_calc(Body& body)
 
 void Sim::calc_net_force(Body& body)
 {
+    struct Node head;
     switch (force_method) {
     case Direct:
         direct_calc(body);
         break;
     case Tree:
+        head = init_head();
+        generate_tree(head);
         tree_calc(body, head, Eigen::Vector3d::Zero());
+        //assert(1<0); // Hit the brakes!
         break;
     case FMM:
         fmm_calc(body);
