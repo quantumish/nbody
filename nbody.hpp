@@ -27,6 +27,7 @@ enum TimeMethod {Euler, Leapfrog, Hermite};
 class Sim {
     struct Node init_head();
     int check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2);
+    bool check_for_body(Body* body, Eigen::Vector3d corner1, Eigen::Vector3d corner2);
     void make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max);
     void generate_tree(struct Node& head);
 
@@ -34,7 +35,7 @@ class Sim {
     ForceMethod force_method;
     TimeMethod time_method;
     void direct_calc(Body& body);
-    void tree_calc(Body& body);
+    void tree_calc(Body& body, Node& current, Eigen::Vector3d sum);
     void fmm_calc(Body& body);
     void mesh_calc(Body& body);
     void p3m_calc(Body& body);

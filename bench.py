@@ -75,6 +75,6 @@ def sample_orbit():
 # plt.legend()
 # plt.show()
 
-time_bench(nbody.Direct, "Direct")
-plt.show()
-#sample_orbit()
+# time_bench(nbody.Direct, "Direct")
+# plt.show()
+sample_orbit()

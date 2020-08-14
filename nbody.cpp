@@ -8,6 +8,8 @@ namespace py = pybind11;
 #include "nbody.hpp"
 #include <iostream>
 
+#define DIST_THRESHOLD 10000
+
 Body::Body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
     :mass(m), position(x), velocity(v), acceleration(a)
 {
@@ -86,6 +88,21 @@ int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
     return num_bodies;
 }
 
+bool Sim::check_for_body(Body* body, Eigen::Vector3d corner1, Eigen::Vector3d corner2)
+{
+    int num_bodies = 0;
+    for (Body& i : bodies) {
+        if (&i != body) continue;
+        bool inside = true;
+        for (int j = 0; j < 3; j++) {
+            if (i.position[j] < corner1[j]) inside = false;
+            if (i.position[j] > corner2[j]) inside = false;
+        }
+        if (inside) return true;
+    }
+    return false;
+}
+
 void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
 {
     struct Node child = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
@@ -134,11 +151,17 @@ void Sim::generate_tree(struct Node& head)
     }
 }
 
-// TODO Restructure tree to allow locating bodies | -p B -t conundrum -t coding -m This forces some unnecessary checks otherwise.
-void Sim::tree_calc(Body& body)
+void Sim::tree_calc(Body& body, Node& current, Eigen::Vector3d sum)
 {
-    head
-    assert(1<0);
+    double distance = sqrt(pow(body.position[0] - current.center[0],2)+pow(body.position[1] - current.center[1],2))+pow(body.position[2] - current.center[2],2);
+    if (distance < DIST_THRESHOLD && current.children != nullptr) {
+        for (int i = 0; i < 8; i++) tree_calc(body, current.children[i], sum);
+    }
+    else {
+        double magnitude = (GRAV_CONST * body.mass * current.mass)/(pow(distance,2));
+        sum += (current.center - body.position).normalized() * magnitude;
+        body.net_force = sum;
+    }    
 }
 
 void Sim::fmm_calc(Body& body)
@@ -160,9 +183,7 @@ void Sim::calc_net_force(Body& body)
         direct_calc(body);
         break;
     case Tree:
-        //truct Node head = init_head();
-        //generate_tree(head);
-        tree_calc(body);
+        tree_calc(body, head, Eigen::Vector3d::Zero());
         break;
     case FMM:
         fmm_calc(body);
