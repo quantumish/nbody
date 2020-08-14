@@ -17,6 +17,7 @@ struct Node {
     Eigen::Vector3d max;
     Eigen::Vector3d center;
     double mass;
+    Body* body;
     Node* children;
 };
 
@@ -28,7 +29,8 @@ class Sim {
     int check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2);
     void make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max);
     void generate_tree(struct Node& head);
-  
+
+    struct Node head;
     ForceMethod force_method;
     TimeMethod time_method;
     void direct_calc(Body& body);
@@ -41,7 +43,7 @@ class Sim {
 public:
     std::vector<Body> bodies;
     double dt;
-    double t = 0;
+    double t;
   
     Sim(double delta_t, ForceMethod fm, TimeMethod tm);
     void add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a);

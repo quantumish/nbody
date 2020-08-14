@@ -11,7 +11,7 @@ namespace py = pybind11;
 Body::Body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
     :mass(m), position(x), velocity(v), acceleration(a)
 {
-    net_force = {0,0,0};
+    net_force = Eigen::Vector3d::Zero();
     assert(mass >= 0);
 }
 
@@ -22,9 +22,12 @@ bool Body::operator==(Body& other)
 }
   
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
-    :dt(delta_t), force_method(fm), time_method(tm)
+    :dt(delta_t), force_method(fm), time_method(tm), t(0)
 {
-    __asm__("nop");
+    if (fm == Tree) {
+        head = init_head();
+        generate_tree(head);
+    }
 }
 
 void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
@@ -44,7 +47,7 @@ void Sim::set_bodies(std::vector<Body> new_bodies)
 
 void Sim::direct_calc(Body& body)
 {
-    Eigen::Vector3d sum = {0,0,0};
+    Eigen::Vector3d sum = Eigen::Vector3d::Zero();
     for (Body& other : bodies) {
         if (body == other) continue;
         double distance = sqrt(pow(body.position[0] - other.position[0],2)+pow(body.position[1] - other.position[1],2))+pow(body.position[2] - other.position[2],2);
@@ -56,7 +59,7 @@ void Sim::direct_calc(Body& body)
 
 struct Node Sim::init_head()
 {
-    struct Node head = {{0,0,0}, {0,0,0}, {0,0,0}, 0, nullptr};
+    struct Node head = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
     head.children = (struct Node*)malloc(8*sizeof(struct Node));
     for (Body& i : bodies) {
         for (int j = 0; j < 3; j++) {
@@ -67,7 +70,7 @@ struct Node Sim::init_head()
     return head;
 }
 
-// TODO: Fix variable names -m It's too confusing.
+// TODO: Fix variable names | -m It's too confusing.
 int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 {
     int num_bodies = 0;
@@ -85,9 +88,11 @@ int Sim::check_bodies(Eigen::Vector3d corner1, Eigen::Vector3d corner2)
 
 void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
 {
-    struct Node child = {{0,0,0}, {0,0,0}, {0,0,0}, 0, nullptr};
+    struct Node child = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
     child.children = (struct Node*)malloc(8*sizeof(struct Node));
-    for (Body i : bodies) {
+    Body* bodyptr;
+    int num_bodies = 0;
+    for (Body& i : bodies) {
         bool inside = true;
         for (int j = 0; j < 3; j++) {
             if (i.position[j] < min[j]) inside = false;
@@ -96,11 +101,18 @@ void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Ve
         if (inside) {
             child.mass += i.mass;
             child.center += i.mass * i.position;
+            bodyptr = &i;
+            num_bodies++;
         }
     }
-    // TODO: Investigate whether this has any real consequences if there are no bodies
-    child.center /= child.mass;
-    head.children[iter] = child;
+    if (num_bodies == 1) {
+        child.body = bodyptr;
+    }
+    else if (num_bodies == 0) return;
+    else {
+        child.center /= child.mass;
+        head.children[iter] = child;
+    }
 }
 
 void Sim::generate_tree(struct Node& head)
@@ -108,7 +120,7 @@ void Sim::generate_tree(struct Node& head)
     if (check_bodies(head.min, head.max) < 2) return;
     Eigen::Vector3d perturb = (head.max - head.min)/2;
     for (int i = 0; i < 2; i++) {
-        Eigen::Vector3d start = {0,0,0};
+        Eigen::Vector3d start = Eigen::Vector3d::Zero();
         start[2] = head.min[2] + perturb[2] * i;
         for (int j = 0; j < 2; j++) {
             start[1] = head.min[1] + perturb[1] * j;
@@ -122,10 +134,10 @@ void Sim::generate_tree(struct Node& head)
     }
 }
 
+// TODO Restructure tree to allow locating bodies | -p B -t conundrum -t coding -m This forces some unnecessary checks otherwise.
 void Sim::tree_calc(Body& body)
 {
-    struct Node head = init_head();
-    generate_tree(head);
+    head
     assert(1<0);
 }
 
@@ -148,6 +160,8 @@ void Sim::calc_net_force(Body& body)
         direct_calc(body);
         break;
     case Tree:
+        //truct Node head = init_head();
+        //generate_tree(head);
         tree_calc(body);
         break;
     case FMM:
@@ -182,7 +196,7 @@ void Sim::update()
             body.acceleration = (body.net_force / body.mass);
             break;
         case Leapfrog:
-            // TODO: The derivation of this scares me. It's probably a good idea to look at it more though...
+            // TODO: Look into Leapfrog derivation | -m The derivation of this scares me. It's probably a good idea to look at it more though...
             leapfrog_update(body);
         case Hermite:
             __asm__("nop");
