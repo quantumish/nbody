@@ -151,11 +151,16 @@ void Sim::generate_tree(struct Node& head)
 void Sim::tree_calc(Body& body, Node& current, Eigen::Vector3d sum)
 {
     //std::cout << check_bodies(current.min, current.max) << " " << current.mass << "\n";
+    std::cout << "Distance calcs" << "\n";
+    std::cout << current.mass << "\n\n";
     double distance = sqrt(pow(body.position[0] - current.center[0],2)+pow(body.position[1] - current.center[1],2))+pow(body.position[2] - current.center[2],2);
-    if (distance > DIST_THRESHOLD && current.children != nullptr) {
+    std::cout << "Distance calcs (end)" << "\n";
+    if (check_for_body(&body, current.min, current.max) == true || (distance > DIST_THRESHOLD && current.children != nullptr)) {
+        std::cout << "Threshold calcs" << "\n";
         for (int i = 0; i < 8; i++) tree_calc(body, current.children[i], sum);
     }
     else {
+        std::cout << "Force calcs" << "\n";
         double magnitude = (GRAV_CONST * body.mass * current.mass)/(pow(distance,2));
         sum += (current.center - body.position).normalized() * magnitude;
         body.net_force = sum;
@@ -185,7 +190,9 @@ void Sim::calc_net_force(Body& body)
     case Tree:
         head = init_head();
         generate_tree(head);
+        std::cout << "Tree generated!" << "\n";
         tree_calc(body, head, Eigen::Vector3d::Zero());
+        std::cout << "Done!" << "\n";
         //assert(1<0); // Hit the brakes!
         break;
     case FMM:
