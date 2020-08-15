@@ -26,7 +26,10 @@ bool Body::operator==(Body& other)
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
     :dt(delta_t), force_method(fm), time_method(tm), t(0)
 {
-    __asm__("nop");
+    if (fm == Tree) {
+        head = init_head();
+        generate_tree(head);
+    }
 }
 
 void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
@@ -120,7 +123,6 @@ void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Ve
             num_bodies++;
         }
     }
-    std::cout << head.children[iter].mass << "(inside) " << num_bodies << "\n";
     if (num_bodies == 1) {
         head.children[iter].body = bodyptr;
     }
@@ -143,20 +145,25 @@ void Sim::generate_tree(struct Node& head)
                 start[0] = head.min[0] + perturb[0] * k;
                 int iter = (i * 4) + (j * 2) + k;
                 make_child(head, iter, start, start+perturb);
-                for (int i = 0; i < 8; i++) std::cout << head.children[i].mass << " ";
-                std::cout << "\n";
                 generate_tree(head.children[iter]);
             }            
         }
+    }
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 10; j++) {
+            std::cout << head.children[i].children[j].mass << " ";
+        }
+        std::cout << "(" << head.children[i].mass << ")\n";
     }
 }
 
 void Sim::tree_calc(Body& body, Node& current, Eigen::Vector3d sum)
 {
     //std::cout << check_bodies(current.min, current.max) << " " << current.mass << "\n";
-    std::cout << current.mass << "(outside)\n\n";
+    std::cout << "entered" << "\n";
+    std::cout << current.mass << "(outside)\n";
     double distance = sqrt(pow(body.position[0] - current.center[0],2)+pow(body.position[1] - current.center[1],2))+pow(body.position[2] - current.center[2],2);
-    if (check_for_body(&body, current.min, current.max) == true || (distance > DIST_THRESHOLD && current.children != nullptr)) {
+    if (check_for_body(&body, current.min, current.max) == true || (distance > DIST_THRESHOLD && current.children != nullptr && check_bodies(current.min, current.max) > 1)) {
         for (int i = 0; i < 8; i++) tree_calc(body, current.children[i], sum);
     }
     else {
@@ -187,11 +194,9 @@ void Sim::calc_net_force(Body& body)
         direct_calc(body);
         break;
     case Tree:
-        head = init_head();
-        generate_tree(head);
-        std::cout << "Tree generated!" << "\n";
         tree_calc(body, head, Eigen::Vector3d::Zero());
         std::cout << "Done!" << "\n";
+        std::cout << body.net_force << "\n\n";
         //assert(1<0); // Hit the brakes!
         break;
     case FMM:
