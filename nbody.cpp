@@ -59,7 +59,7 @@ void Sim::direct_calc(Body& body)
 struct Node Sim::init_head()
 {
     struct Node head = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
-    head.children = (struct Node*)malloc(8*sizeof(struct Node));
+    head.children = (struct Node*)calloc(sizeof(struct Node), 8*sizeof(struct Node));;
     for (Body& i : bodies) {
         for (int j = 0; j < 3; j++) {
             if (i.position[j] < head.min[j]) head.min[j] = i.position[j];
@@ -99,11 +99,12 @@ bool Sim::check_for_body(Body* body, Eigen::Vector3d corner1, Eigen::Vector3d co
     }
     return false;
 }
+// non
 
 void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Vector3d max)
 {
-    struct Node child = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
-    child.children = (struct Node*)malloc(8*sizeof(struct Node));
+    head.children[iter] = {Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero(), 0, nullptr, nullptr};
+    head.children[iter].children = (struct Node*)calloc(sizeof(struct Node), 8*sizeof(struct Node));
     Body* bodyptr;
     int num_bodies = 0;
     for (Body& i : bodies) {
@@ -113,19 +114,19 @@ void Sim::make_child(struct Node& head, int iter, Eigen::Vector3d min, Eigen::Ve
             if (i.position[j] > max[j]) inside = false;
         }
         if (inside) {
-            child.mass += i.mass;
-            child.center += i.mass * i.position;
+            head.children[iter].mass += i.mass;
+            head.children[iter].center += i.mass * i.position;
             bodyptr = &i;
             num_bodies++;
         }
     }
+    std::cout << head.children[iter].mass << "(inside) " << num_bodies << "\n";
     if (num_bodies == 1) {
-        child.body = bodyptr;
+        head.children[iter].body = bodyptr;
     }
     else if (num_bodies == 0) return;
     else {
-        child.center /= child.mass;
-        head.children[iter] = child;
+        head.children[iter].center /= head.children[iter].mass;
     }
 }
 
@@ -142,6 +143,8 @@ void Sim::generate_tree(struct Node& head)
                 start[0] = head.min[0] + perturb[0] * k;
                 int iter = (i * 4) + (j * 2) + k;
                 make_child(head, iter, start, start+perturb);
+                for (int i = 0; i < 8; i++) std::cout << head.children[i].mass << " ";
+                std::cout << "\n";
                 generate_tree(head.children[iter]);
             }            
         }
@@ -151,16 +154,12 @@ void Sim::generate_tree(struct Node& head)
 void Sim::tree_calc(Body& body, Node& current, Eigen::Vector3d sum)
 {
     //std::cout << check_bodies(current.min, current.max) << " " << current.mass << "\n";
-    std::cout << "Distance calcs" << "\n";
-    std::cout << current.mass << "\n\n";
+    std::cout << current.mass << "(outside)\n\n";
     double distance = sqrt(pow(body.position[0] - current.center[0],2)+pow(body.position[1] - current.center[1],2))+pow(body.position[2] - current.center[2],2);
-    std::cout << "Distance calcs (end)" << "\n";
     if (check_for_body(&body, current.min, current.max) == true || (distance > DIST_THRESHOLD && current.children != nullptr)) {
-        std::cout << "Threshold calcs" << "\n";
         for (int i = 0; i < 8; i++) tree_calc(body, current.children[i], sum);
     }
     else {
-        std::cout << "Force calcs" << "\n";
         double magnitude = (GRAV_CONST * body.mass * current.mass)/(pow(distance,2));
         sum += (current.center - body.position).normalized() * magnitude;
         body.net_force = sum;
@@ -207,6 +206,7 @@ void Sim::calc_net_force(Body& body)
     }
 }
 
+// TODO: Look into Leapfrog derivation | -m The derivation of this scares me. It's probably a good idea to look at it more though...
 void Sim::leapfrog_update(Body& body)
 {
     body.position += (body.velocity * dt) + (0.5 * body.acceleration * pow(dt,2));
@@ -227,7 +227,6 @@ void Sim::update()
             body.acceleration = (body.net_force / body.mass);
             break;
         case Leapfrog:
-            // TODO: Look into Leapfrog derivation | -m The derivation of this scares me. It's probably a good idea to look at it more though...
             leapfrog_update(body);
         case Hermite:
             __asm__("nop");
