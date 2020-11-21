@@ -1,4 +1,5 @@
 #include <vector>
+#include <array>
 #include <Eigen/Dense>
 
 class Body {
@@ -21,7 +22,7 @@ struct Node {
     Node* children;
 };
 
-enum ForceMethod {Direct, Tree, FMM, Mesh, P3M};
+enum ForceMethod {Direct, Tree, FMM, Mesh, P3M, TreePM};
 enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
