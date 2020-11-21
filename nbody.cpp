@@ -58,7 +58,10 @@ void Sim::direct_calc(Body& body)
 
 bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 {
-    return v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
+    std::cout << v << "\n\n";
+    std::cout << a << "\n\n";
+    std::cout << b << "\n\n";
+    return v[0] = a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2]  < b[2];
 }
 
 void Sim::initialize_children(struct Node& node)
@@ -89,18 +92,23 @@ void Sim::initialize_octree()
             if (body.position[i] < min[i]) min[i] = body.position[i];
         }       
     }
+    max += 1;
+    min += 1;
     octree.push_back({min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr});
 }
 
 void Sim::insert_body(Body& body)
 {
+    std::cout << "adding" << "\n";
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
         if (!vector_within(body.position, stack.top()->min, stack.top()->max)) {
+            std::cout << "uhh" << "\n";
             stack.pop();
             continue;
-        }            
+        }
+        std::cout << stack.top()->body << " " << stack.top()->children << "\n";
         if (stack.top()->body == nullptr && stack.top()->children == nullptr) {
             stack.top()->body = &body;
             break;
@@ -115,16 +123,35 @@ void Sim::insert_body(Body& body)
     }
 }
 
-    void Sim::calc_net_force(Body& body)
-    {
-        switch(force_method) {
-        case Direct:
-            direct_calc(body);
-            break;
-        case TreePM:     
-            break;
-        }
+void Sim::calc_center_mass(Node& node)
+{
+    if (node.children == nullptr) {
+        if (node.body == nullptr) return;
+        node.center = node.body->position;
+        node.mass = node.body->mass;
+        return;
     }
+    for (int i = 0; i < 8; i++) calc_center_mass(*node.children[i]);
+    double mass_sum = 0;
+    Eigen::Vector3d weighted_sum = {0, 0, 0};
+    for (int i = 0; i < 8; i++) {
+        weighted_sum += node.children[i]->mass * node.children[i]->center;
+        mass_sum += node.children[i]->mass;
+    }
+    node.center = weighted_sum/mass_sum;
+    node.mass = mass_sum;
+}
+
+void Sim::calc_net_force(Body& body)
+{
+    switch(force_method) {
+    case Direct:
+        direct_calc(body);
+        break;
+    case TreePM:     
+        break;
+    }
+}
 
 // TODO: Look into Leapfrog derivation | -m The derivation of this scares me. It's probably a good idea to look at it more though...
 void Sim::leapfrog_update(Body& body)
@@ -141,6 +168,10 @@ void Sim::update()
     if (force_method == TreePM) {
         initialize_octree();
         for (Body& body : bodies) insert_body(body);
+        calc_center_mass(octree[0]);
+        for (Node node : octree) {
+            std::cout << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
+        }
     }
     for (Body& body : bodies) {
         switch (time_method) {
