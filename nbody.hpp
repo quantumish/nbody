@@ -26,11 +26,15 @@ enum ForceMethod {Direct, Tree, FMM, Mesh, P3M, TreePM};
 enum TimeMethod {Euler, Leapfrog, Hermite};
 
 class Sim {
-    Eigen::Vector3d min (0,0,0);
-    Eigen::Vector3d max (0,0,0);
+    Eigen::Vector3d min {0,0,0};
+    Eigen::Vector3d max {0,0,0};
     std::vector<struct Node> octree;
     ForceMethod force_method;
     TimeMethod time_method;
+
+    void initialize_octree();
+    void insert_body(Body& body);
+    void initialize_children(Node& node);
     void direct_calc(Body& body);
     void calc_net_force(Body& body);
     void leapfrog_update(Body& body);

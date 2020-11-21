@@ -7,6 +7,7 @@ namespace py = pybind11;
 
 #include "nbody.hpp"
 #include <iostream>
+#include <stack>
 
 #define DIST_THRESHOLD 10000
 
@@ -26,10 +27,6 @@ bool Body::operator==(Body& other)
 Sim::Sim(double delta_t, ForceMethod fm, TimeMethod tm)
     :dt(delta_t), force_method(fm), time_method(tm), t(0)
 {
-    if (fm == Tree) {
-        head = init_head();
-        generate_tree(head);
-    }
 }
 
 void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
@@ -61,12 +58,22 @@ void Sim::direct_calc(Body& body)
 
 void Sim::initialize_children(struct Node& node)
 {
-    Eigen::Vector3d half ((node.max-node.min)/2);
+    Eigen::Vector3d halfx = {(node.max[0]-node.min[0])/2, 0, 0};
+    Eigen::Vector3d halfy = {0, (node.max[1]-node.min[1])/2, 0};
+    Eigen::Vector3d halfz = {0, 0, (node.max[2]-node.min[2])/2};
     for (int i = 0; i < 8; i++) {
-        Eigen::Vector3d child_min (min+(half[0]*((i & 1) == 1)), min+(half[1]*((i & 2) == 2)),
-                                   min+(half[2]*((i & 4) == 4)));
+        Eigen::Vector3d child_min (node.min+(halfx*((i & 1) == 1)),
+                                   node.min+(halfy*((i & 2) == 2)),
+                                   node.min+(halfz*((i & 4) == 4)));
         octree.emplace_back(child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr);
         node.children[i] = &octree[octree.size()-1];
+    }
+    for (int i = 0; i < 8; i++) {
+        if (vector_within(node.body->position, node.children[i].min, node.children[i].max)) {
+            node.children.body = node.body;
+            node.body = nullptr;
+            break;
+        }
     }
 }
 
@@ -89,37 +96,37 @@ bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 
 void Sim::insert_body(Body& body)
 {
-    std::stack<Node> nodes;
-    stack.push(octree[0]);
+    std::stack<Node*> stack;
+    stack.push(&octree[0]);
     while (stack.size()) {
-        if (!vector_within(body.position, stack.top.min, stack.top.max) {
+        if (!vector_within(body.position, stack.top->min, stack.top->max) {
             stack.pop();
             continue;
         }            
-        if (stack.top.body == nullptr && stack.top.children == nullptr) {
-            stack.top.body = body;
+        if (stack.top->body == nullptr && stack.top->children == nullptr) {
+            stack.top->body = body;
             break;
         }
-        if (stack.top.body != nullptr && stack.top.children == nullptr) {
-            // init children, move stuff
+        if (stack.top->body != nullptr && stack.top->children == nullptr) {
+            initialize_children(*stack.top);
         }
         for (int i = 0; i < 8; i++) {
-            stack.push(stack.top.children[i]);
+            stack.push(&(stack.top->children[i]));
         }
         stack.pop();
     }
 }
 
-void Sim::calc_net_force(Body& body)
-{
-    switch(fm) {
-    case Direct:
-        direct_calc();
-        break;
-    case TreePM:
-        break;
+    void Sim::calc_net_force(Body& body)
+    {
+        switch(force_method) {
+        case Direct:
+            direct_calc(body);
+            break;
+        case TreePM:     
+            break;
+        }
     }
-}
 
 // TODO: Look into Leapfrog derivation | -m The derivation of this scares me. It's probably a good idea to look at it more though...
 void Sim::leapfrog_update(Body& body)
@@ -133,6 +140,10 @@ void Sim::leapfrog_update(Body& body)
 
 void Sim::update()
 {
+    if (force_method == TreePM) {
+        initialize_octree();
+        for (Body& body : bodies) insert_body(body);
+    }
     for (Body& body : bodies) {
         switch (time_method) {
         case Euler:
