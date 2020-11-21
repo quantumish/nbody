@@ -59,6 +59,44 @@ void Sim::direct_calc(Body& body)
     body.net_force = sum;
 }
 
+void Sim::initialize_children(struct Node& node)
+{
+}
+
+void Sim::initialize_octree()
+{
+    octree.clear();
+    for (Body& body : bodies) {
+        for (int i = 0; i < 3; i++) {
+            if (body.position[i] > max[i]) max[i] = body.position[i];
+            if (body.position[i] < min[i]) min[i] = body.position[i];
+        }       
+    }
+    octree.emplace_back(min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr);
+    for (Body& body : bodies) {
+        std::stack<Node> nodes;
+        stack.push(octree[0]);
+        while (stack.size()) {
+            bool is_inside = body.position[0] > stack.top.min[0] &&
+                body.position[1] > stack.top.min[1] && body.position[2] > stack.top.min[2]
+                && body.position[0] < stack.top.max[0] && body.position[1] < stack.top.max[1]
+                && body.position[2] < stack.top.max[2];
+            if (!is_inside) {
+                stack.pop();
+                continue;
+            }            
+            if (stack.top.body == nullptr && stack.top.children == nullptr) stack.top.body = body;
+            if (stack.top.body != nullptr && stack.top.children == nullptr) {
+                // init children, move stuff
+            }
+            for (int i = 0; i < 8; i++) {
+                stack.push(stack.top.children[i]);
+            }
+            stack.pop();
+        }
+    }
+}
+
 void Sim::calc_net_force(Body& body)
 {
     switch(fm) {
