@@ -66,24 +66,25 @@ bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 
 void Sim::initialize_children(struct Node& node)
 {
-    std::cout << "hi" << "\n";
     node.children = new Node*[8];
     Eigen::Vector3d half = (node.max-node.min)/2;
     for (int i = 0; i < 8; i++) {
         Eigen::Vector3d child_min(node.min[0] + (half[0] * ((i & 1) == 1)),
                                   node.min[1] + (half[1] * ((i & 2) == 2)),
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
-        std::cout << "attenSHUN1" << "\n";
         octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
-        std::cout << "attenSHUN2" << "\n";
-        node.children[i] = &octree[octree.size() - 1];
-        std::cout << "attenSHUN3" << "\n";
+        std::cout << sizeof(Node) << "\n";
+        std::cout <<  &(octree.data()[octree.size() - 1]) << " " << &octree[octree.size()-1] << " " << octree.data()+(octree.size()-1)<< "\n";
+        node.children[i] = &(octree.data()[octree.size() - 1]);
     }
-    std::cout << "attenSHUN" << "\n";
+    std::cout << "done" << "\n";
     for (int i = 0; i < 8; i++) {
         if (vector_within(node.body->position, node.children[i]->min, node.children[i]->max)) {
             std::cout << "hi2" << "\n";
-            node.children[i]->body = node.body;
+            //node.children[i]->body = node.body;
+            std::cout << i << "\n";
+            std::cout << node.children[i] << "\n";
+            node.children[i]->body = 0x0;
             std::cout << "hi3" << "\n";
             node.body = nullptr;
             break;
