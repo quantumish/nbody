@@ -37,6 +37,7 @@ class Sim {
     void initialize_children(Node& node);
     void calc_center_mass(Node& node);
     void direct_calc(Body& body);
+    void tree_calc(Body& body);
     void calc_net_force(Body& body);
     void leapfrog_update(Body& body);
 public:

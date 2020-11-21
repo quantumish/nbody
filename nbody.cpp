@@ -49,7 +49,7 @@ void Sim::direct_calc(Body& body)
     Eigen::Vector3d sum = Eigen::Vector3d::Zero();
     for (Body& other : bodies) {
         if (body == other) continue;
-        double distance = sqrt(pow(body.position[0] - other.position[0],2)+pow(body.position[1] - other.position[1],2))+pow(body.position[2] - other.position[2],2);
+        double distance = sqrt(pow(body.position[0] - other.position[0],2)+pow(body.position[1] - other.position[1],2)+pow(body.position[2] - other.position[2],2));
         double magnitude = (GRAV_CONST * body.mass * other.mass)/(pow(distance,2));
         sum += (other.position - body.position).normalized() * magnitude;
     }
@@ -74,8 +74,9 @@ void Sim::initialize_children(struct Node& node)
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
         octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
         std::cout << sizeof(Node) << "\n";
-        std::cout <<  &(octree.data()[octree.size() - 1]) << " " << &octree[octree.size()-1] << " " << octree.data()+(octree.size()-1)<< "\n";
-        node.children[i] = &(octree.data()[octree.size() - 1]);
+        std::cout << node.children << " " << i << " " << &node.children[i] << "\n";
+        std::cout <<  &(octree.data()[octree.size() - 1]) << " " << &octree[octree.size()-1] << " " << octree.data()+2<< "\n";
+        node.children[i] = 0x0;
     }
     std::cout << "done" << "\n";
     for (int i = 0; i < 8; i++) {
@@ -152,6 +153,34 @@ void Sim::calc_center_mass(Node& node)
     }
     node.center = weighted_sum/mass_sum;
     node.mass = mass_sum;
+}
+
+#define THETA 1
+void Sim::tree_calc(Body& body)
+{
+    std::stack<Node*> stack;
+    Eigen::Vector3d sum;
+    stack.push(&octree[0]);
+    double distance = sqrt(pow(body.position[0] - stack.top()->center[0],2) +
+                           pow(body.position[1] - stack.top()->center[1],2) +
+                           pow(body.position[2] - stack.top()->center[2],2));
+    while (stack.size()) {
+        double maxdim = 0;
+        for (int i = 0; i < 3; i++) {
+            if (stack.top()->max[i]-stack.top()->min[i] > maxdim) {
+                maxdim = stack.top()->max[i]-stack.top()->min[i];
+            }
+        }
+        if (distance/maxdim >= THETA) {
+            double magnitude = (GRAV_CONST * body.mass * stack.top()->mass)/(pow(distance,2));
+            sum += (stack.top()->center - body.position).normalized() * magnitude;
+            stack.pop();
+            continue;
+        }
+        for (int i = 0; i < 8; i++) stack.push(stack.top()->children[i]);
+        stack.pop();
+    }
+    body.net_force = sum;
 }
 
 void Sim::calc_net_force(Body& body)
