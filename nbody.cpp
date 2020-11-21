@@ -66,17 +66,25 @@ bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 
 void Sim::initialize_children(struct Node& node)
 {
+    std::cout << "hi" << "\n";
+    node.children = new Node*[8];
     Eigen::Vector3d half = (node.max-node.min)/2;
     for (int i = 0; i < 8; i++) {
         Eigen::Vector3d child_min(node.min[0] + (half[0] * ((i & 1) == 1)),
                                   node.min[1] + (half[1] * ((i & 2) == 2)),
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
+        std::cout << "attenSHUN1" << "\n";
         octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
+        std::cout << "attenSHUN2" << "\n";
         node.children[i] = &octree[octree.size() - 1];
+        std::cout << "attenSHUN3" << "\n";
     }
+    std::cout << "attenSHUN" << "\n";
     for (int i = 0; i < 8; i++) {
         if (vector_within(node.body->position, node.children[i]->min, node.children[i]->max)) {
+            std::cout << "hi2" << "\n";
             node.children[i]->body = node.body;
+            std::cout << "hi3" << "\n";
             node.body = nullptr;
             break;
         }
@@ -92,9 +100,12 @@ void Sim::initialize_octree()
             if (body.position[i] < min[i]) min[i] = body.position[i];
         }       
     }
-    max += 1;
-    min += 1;
-    octree.push_back({min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr});
+    for (int i = 0; i < 3; i++) {
+        max[i] += 1;
+        min[i] -= 1;
+    }
+    octree.push_back({min, max, {0, 0, 0}, 0, nullptr, nullptr});
+    std::cout << octree.size() << " " << octree[0].body << "\n";
 }
 
 void Sim::insert_body(Body& body)
@@ -170,7 +181,7 @@ void Sim::update()
         for (Body& body : bodies) insert_body(body);
         calc_center_mass(octree[0]);
         for (Node node : octree) {
-            std::cout << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
+            std::cout << "ihudwahkjadsjk" << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
         }
     }
     for (Body& body : bodies) {
