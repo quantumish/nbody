@@ -56,21 +56,24 @@ void Sim::direct_calc(Body& body)
     body.net_force = sum;
 }
 
+bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
+{
+    return v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
+}
+
 void Sim::initialize_children(struct Node& node)
 {
-    Eigen::Vector3d halfx = {(node.max[0]-node.min[0])/2, 0, 0};
-    Eigen::Vector3d halfy = {0, (node.max[1]-node.min[1])/2, 0};
-    Eigen::Vector3d halfz = {0, 0, (node.max[2]-node.min[2])/2};
+    Eigen::Vector3d half = (node.max-node.min)/2;
     for (int i = 0; i < 8; i++) {
-        Eigen::Vector3d child_min (node.min+(halfx*((i & 1) == 1)),
-                                   node.min+(halfy*((i & 2) == 2)),
-                                   node.min+(halfz*((i & 4) == 4)));
-        octree.emplace_back(child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr);
-        node.children[i] = &octree[octree.size()-1];
+        Eigen::Vector3d child_min(node.min[0] + (half[0] * ((i & 1) == 1)),
+                                  node.min[1] + (half[1] * ((i & 2) == 2)),
+                                  node.min[2] + (half[2] * ((i & 4) == 4)));
+        octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
+        node.children[i] = &octree[octree.size() - 1];
     }
     for (int i = 0; i < 8; i++) {
-        if (vector_within(node.body->position, node.children[i].min, node.children[i].max)) {
-            node.children.body = node.body;
+        if (vector_within(node.body->position, node.children[i]->min, node.children[i]->max)) {
+            node.children[i]->body = node.body;
             node.body = nullptr;
             break;
         }
@@ -86,12 +89,7 @@ void Sim::initialize_octree()
             if (body.position[i] < min[i]) min[i] = body.position[i];
         }       
     }
-    octree.emplace_back(min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr);
-}
-
-bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
-{
-    return v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
+    octree.push_back({min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr});
 }
 
 void Sim::insert_body(Body& body)
@@ -99,19 +97,19 @@ void Sim::insert_body(Body& body)
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
-        if (!vector_within(body.position, stack.top->min, stack.top->max) {
+        if (!vector_within(body.position, stack.top()->min, stack.top()->max)) {
             stack.pop();
             continue;
         }            
-        if (stack.top->body == nullptr && stack.top->children == nullptr) {
-            stack.top->body = body;
+        if (stack.top()->body == nullptr && stack.top()->children == nullptr) {
+            stack.top()->body = &body;
             break;
         }
-        if (stack.top->body != nullptr && stack.top->children == nullptr) {
-            initialize_children(*stack.top);
+        if (stack.top()->body != nullptr && stack.top()->children == nullptr) {
+            initialize_children(*stack.top());
         }
         for (int i = 0; i < 8; i++) {
-            stack.push(&(stack.top->children[i]));
+            stack.push(stack.top()->children[i]);
         }
         stack.pop();
     }
@@ -168,8 +166,9 @@ PYBIND11_MODULE(nbody, m) {
         .value("Direct", ForceMethod::Direct)
         .value("Tree", ForceMethod::Tree)
         .value("FMM", ForceMethod::FMM)
-        .value("Mesh", ForceMethod::Mesh)
+        .value("Mesh", ForceMethod::Mesh)        
         .value("P3M", ForceMethod::P3M)
+        .value("TreePM", ForceMethod::TreePM)
         .export_values();
     py::enum_<TimeMethod>(m, "TimeMethod")
         .value("Euler", TimeMethod::Euler)
