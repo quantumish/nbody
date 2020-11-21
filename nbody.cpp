@@ -61,6 +61,13 @@ void Sim::direct_calc(Body& body)
 
 void Sim::initialize_children(struct Node& node)
 {
+    Eigen::Vector3d half ((node.max-node.min)/2);
+    for (int i = 0; i < 8; i++) {
+        Eigen::Vector3d child_min (min+(half[0]*((i & 1) == 1)), min+(half[1]*((i & 2) == 2)),
+                                   min+(half[2]*((i & 4) == 4)));
+        octree.emplace_back(child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr);
+        node.children[i] = &octree[octree.size()-1];
+    }
 }
 
 void Sim::initialize_octree()
@@ -73,27 +80,33 @@ void Sim::initialize_octree()
         }       
     }
     octree.emplace_back(min, max, bodies[0].position, bodies[0].mass, &bodies[0], nullptr);
-    for (Body& body : bodies) {
-        std::stack<Node> nodes;
-        stack.push(octree[0]);
-        while (stack.size()) {
-            bool is_inside = body.position[0] > stack.top.min[0] &&
-                body.position[1] > stack.top.min[1] && body.position[2] > stack.top.min[2]
-                && body.position[0] < stack.top.max[0] && body.position[1] < stack.top.max[1]
-                && body.position[2] < stack.top.max[2];
-            if (!is_inside) {
-                stack.pop();
-                continue;
-            }            
-            if (stack.top.body == nullptr && stack.top.children == nullptr) stack.top.body = body;
-            if (stack.top.body != nullptr && stack.top.children == nullptr) {
-                // init children, move stuff
-            }
-            for (int i = 0; i < 8; i++) {
-                stack.push(stack.top.children[i]);
-            }
+}
+
+bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
+{
+    return v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
+}
+
+void Sim::insert_body(Body& body)
+{
+    std::stack<Node> nodes;
+    stack.push(octree[0]);
+    while (stack.size()) {
+        if (!vector_within(body.position, stack.top.min, stack.top.max) {
             stack.pop();
+            continue;
+        }            
+        if (stack.top.body == nullptr && stack.top.children == nullptr) {
+            stack.top.body = body;
+            break;
         }
+        if (stack.top.body != nullptr && stack.top.children == nullptr) {
+            // init children, move stuff
+        }
+        for (int i = 0; i < 8; i++) {
+            stack.push(stack.top.children[i]);
+        }
+        stack.pop();
     }
 }
 
