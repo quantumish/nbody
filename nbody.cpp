@@ -133,10 +133,9 @@ void Sim::insert_body(Body& body)
             initialize_children(*stack.top());
         }
         //std::cout << stack.top()->children[2] << "\n\n";
-        std::cout << stack.top()->children << "\n\n";
+        Node* current = stack.top();
         for (int i = 0; i < 8; i++) {
-            std::cout << stack.top()->children[i] << "\n";
-            //stack.push(stack.top()->children[i]);
+            stack.push(current->children[i]);
         }
         std::cout << "23" << "\n";
         stack.pop();
@@ -220,7 +219,7 @@ void Sim::update()
         std::cout << "all done" << "\n";
         calc_center_mass(octree[0]);
         for (Node node : octree) {
-            std::cout << "ihudwahkjadsjk" << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
+            std::cout << "Node:\n" << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
         }
     }
     for (Body& body : bodies) {
