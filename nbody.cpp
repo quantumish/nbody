@@ -58,10 +58,11 @@ void Sim::direct_calc(Body& body)
 
 bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 {
-    std::cout << v << "\n\n";
+    std::cout << v << "(vec)\n\n";
     std::cout << a << "\n\n";
     std::cout << b << "\n\n";
-    return v[0] = a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2]  < b[2];
+    //std::cout << (v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2]) << "\n";
+    return v[0] >= a[0] && v[1] >= a[1] && v[2] >= a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
 }
 
 void Sim::initialize_children(struct Node& node)
@@ -87,6 +88,9 @@ void Sim::initialize_children(struct Node& node)
             break;
         }
     }
+    std::cout << node.children << "\n\n";
+    for (int i = 0; i < 8; i++) std::cout << node.children[i] << "\n";
+    std::cout << "??!" << "\n";
 }
 
 void Sim::initialize_octree()
@@ -107,6 +111,7 @@ void Sim::initialize_octree()
 
 void Sim::insert_body(Body& body)
 {
+    std::cout << body.position << "pos\n";
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
@@ -114,6 +119,7 @@ void Sim::insert_body(Body& body)
             stack.pop();
             continue;
         }
+        std::cout << "Made it!" << "\n";
         std::cout << stack.top()->body << " " << stack.top()->children[0] << "\n";
         if (stack.top()->body == nullptr && stack.top()->children[0] == nullptr) {
             std::cout << "hmm" << "\n";
@@ -122,11 +128,20 @@ void Sim::insert_body(Body& body)
         }
         std::cout << "uhoh" << "\n";
         if (stack.top()->body != nullptr && stack.top()->children[0] == nullptr) {
+            std::cout << stack.top()->children << "\n\n";
+            for (int i = 0; i < 8; i++) std::cout << stack.top()->children[i] << "\n";
             initialize_children(*stack.top());
         }
-        for (int i = 0; i < 8; i++) stack.push(stack.top()->children[i]);
+        //std::cout << stack.top()->children[2] << "\n\n";
+        std::cout << stack.top()->children << "\n\n";
+        for (int i = 0; i < 8; i++) {
+            std::cout << stack.top()->children[i] << "\n";
+            //stack.push(stack.top()->children[i]);
+        }
+        std::cout << "23" << "\n";
         stack.pop();
     }
+    std::cout << "??" << "\n";
 }
 
 void Sim::calc_center_mass(Node& node)
@@ -202,6 +217,7 @@ void Sim::update()
     if (force_method == TreePM) {
         initialize_octree();
         for (Body& body : bodies) insert_body(body);
+        std::cout << "all done" << "\n";
         calc_center_mass(octree[0]);
         for (Node node : octree) {
             std::cout << "ihudwahkjadsjk" << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
