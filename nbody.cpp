@@ -66,17 +66,13 @@ bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 
 void Sim::initialize_children(struct Node& node)
 {
-    node.children = new Node*[8];
     Eigen::Vector3d half = (node.max-node.min)/2;
     for (int i = 0; i < 8; i++) {
         Eigen::Vector3d child_min(node.min[0] + (half[0] * ((i & 1) == 1)),
                                   node.min[1] + (half[1] * ((i & 2) == 2)),
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
         octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
-        std::cout << sizeof(Node) << "\n";
-        std::cout << node.children << " " << i << " " << &node.children[i] << "\n";
-        std::cout <<  &(octree.data()[octree.size() - 1]) << " " << &octree[octree.size()-1] << " " << octree.data()+2<< "\n";
-        node.children[i] = 0x0;
+        node.children[i] = &octree[octree.size()-1];
     }
     std::cout << "done" << "\n";
     for (int i = 0; i < 8; i++) {
@@ -107,38 +103,35 @@ void Sim::initialize_octree()
         min[i] -= 1;
     }
     octree.push_back({min, max, {0, 0, 0}, 0, nullptr, nullptr});
-    std::cout << octree.size() << " " << octree[0].body << "\n";
 }
 
 void Sim::insert_body(Body& body)
 {
-    std::cout << "adding" << "\n";
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
         if (!vector_within(body.position, stack.top()->min, stack.top()->max)) {
-            std::cout << "uhh" << "\n";
             stack.pop();
             continue;
         }
-        std::cout << stack.top()->body << " " << stack.top()->children << "\n";
-        if (stack.top()->body == nullptr && stack.top()->children == nullptr) {
+        std::cout << stack.top()->body << " " << stack.top()->children[0] << "\n";
+        if (stack.top()->body == nullptr && stack.top()->children[0] == nullptr) {
+            std::cout << "hmm" << "\n";
             stack.top()->body = &body;
             break;
         }
-        if (stack.top()->body != nullptr && stack.top()->children == nullptr) {
+        std::cout << "uhoh" << "\n";
+        if (stack.top()->body != nullptr && stack.top()->children[0] == nullptr) {
             initialize_children(*stack.top());
         }
-        for (int i = 0; i < 8; i++) {
-            stack.push(stack.top()->children[i]);
-        }
+        for (int i = 0; i < 8; i++) stack.push(stack.top()->children[i]);
         stack.pop();
     }
 }
 
 void Sim::calc_center_mass(Node& node)
 {
-    if (node.children == nullptr) {
+    if (node.children[0] == nullptr) {
         if (node.body == nullptr) return;
         node.center = node.body->position;
         node.mass = node.body->mass;
@@ -170,7 +163,7 @@ void Sim::tree_calc(Body& body)
             if (stack.top()->max[i]-stack.top()->min[i] > maxdim) {
                 maxdim = stack.top()->max[i]-stack.top()->min[i];
             }
-        }
+        } 
         if (distance/maxdim >= THETA) {
             double magnitude = (GRAV_CONST * body.mass * stack.top()->mass)/(pow(distance,2));
             sum += (stack.top()->center - body.position).normalized() * magnitude;

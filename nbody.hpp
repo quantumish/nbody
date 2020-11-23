@@ -19,7 +19,7 @@ struct Node {
     Eigen::Vector3d center;
     double mass;
     Body* body;
-    Node** children;
+    Node* children[8];
 };
 
 enum ForceMethod {Direct, Tree, FMM, Mesh, P3M, TreePM};
