@@ -9,7 +9,12 @@ namespace py = pybind11;
 #include <iostream>
 #include <stack>
 
-#define DIST_THRESHOLD 10000
+#define THETA 1 
+
+Node::Node(Eigen::Vector3d mini, Eigen::Vector3d maxi, Eigen::Vector3d c,
+           double m, Body* b, Node* child) // 
+    :min(mini), max(maxi), center(c), mass(m), body(b), children{child}
+{}
 
 Body::Body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector3d a)
     :mass(m), position(x), velocity(v), acceleration(a)
@@ -33,6 +38,8 @@ void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector
 {
     bodies.emplace_back(m,x,v,a);
 }
+
+
 
 void Sim::add_body(Body body)
 {
@@ -72,8 +79,7 @@ void Sim::initialize_children(struct Node& node)
         Eigen::Vector3d child_min(node.min[0] + (half[0] * ((i & 1) == 1)),
                                   node.min[1] + (half[1] * ((i & 2) == 2)),
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
-        octree.push_back({child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr});
-        node.children[i] = &octree[octree.size()-1];
+        node.children[i] = new Node (child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr);
     }
     std::cout << "done" << "\n";
     for (int i = 0; i < 8; i++) {
@@ -82,8 +88,9 @@ void Sim::initialize_children(struct Node& node)
             //node.children[i]->body = node.body;
             std::cout << i << "\n";
             std::cout << node.children[i] << "\n";
-            node.children[i]->body = 0x0;
+            node.children[i]->body = node.body;
             std::cout << "hi3" << "\n";
+            std::cout << &node << " " << &octree[0] << "\n";
             node.body = nullptr;
             break;
         }
@@ -95,7 +102,6 @@ void Sim::initialize_children(struct Node& node)
 
 void Sim::initialize_octree()
 {
-    octree.clear();
     for (Body& body : bodies) {
         for (int i = 0; i < 3; i++) {
             if (body.position[i] > max[i]) max[i] = body.position[i];
@@ -106,7 +112,7 @@ void Sim::initialize_octree()
         max[i] += 1;
         min[i] -= 1;
     }
-    octree.push_back({min, max, {0, 0, 0}, 0, nullptr, nullptr});
+    octree = new Node (min, max, {0, 0, 0}, 0, nullptr, nullptr);
 }
 
 void Sim::insert_body(Body& body)
@@ -130,6 +136,7 @@ void Sim::insert_body(Body& body)
         if (stack.top()->body != nullptr && stack.top()->children[0] == nullptr) {
             std::cout << stack.top()->children << "\n\n";
             for (int i = 0; i < 8; i++) std::cout << stack.top()->children[i] << "\n";
+            std::cout << stack.top() << " " << &octree[0] << "\n";
             initialize_children(*stack.top());
         }
         //std::cout << stack.top()->children[2] << "\n\n";
@@ -196,7 +203,8 @@ void Sim::calc_net_force(Body& body)
     case Direct:
         direct_calc(body);
         break;
-    case TreePM:     
+    case TreePM:
+        tree_calc(body);
         break;
     }
 }
@@ -216,11 +224,7 @@ void Sim::update()
     if (force_method == TreePM) {
         initialize_octree();
         for (Body& body : bodies) insert_body(body);
-        std::cout << "all done" << "\n";
         calc_center_mass(octree[0]);
-        for (Node node : octree) {
-            std::cout << "Node:\n" << node.min << "\n\n" << node.max << "\n\n" << node.body << "\n\n" << node.center << "\n\n" << node.mass << "\n\n\n\n";
-        }
     }
     for (Body& body : bodies) {
         switch (time_method) {
@@ -232,8 +236,10 @@ void Sim::update()
             break;
         case Leapfrog:
             leapfrog_update(body);
+            break;
         case Hermite:
             __asm__("nop");
+            break;
         }
     }
     t+=dt;

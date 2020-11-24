@@ -19,7 +19,9 @@ struct Node {
     Eigen::Vector3d center;
     double mass;
     Body* body;
-    Node* children[8];
+    Node* children[8];    
+    Node(Eigen::Vector3d mini, Eigen::Vector3d maxi, Eigen::Vector3d c,
+           double m, Body* b, Node* child);
 };
 
 enum ForceMethod {Direct, Tree, FMM, Mesh, P3M, TreePM};
@@ -28,7 +30,7 @@ enum TimeMethod {Euler, Leapfrog, Hermite};
 class Sim {
     Eigen::Vector3d min {0,0,0};
     Eigen::Vector3d max {0,0,0};
-    std::vector<struct Node> octree;
+    Node* octree;
     ForceMethod force_method;
     TimeMethod time_method;
 
