@@ -39,8 +39,6 @@ void Sim::add_body(double m, Eigen::Vector3d x, Eigen::Vector3d v, Eigen::Vector
     bodies.emplace_back(m,x,v,a);
 }
 
-
-
 void Sim::add_body(Body body)
 {
     bodies.push_back(body);
@@ -65,11 +63,8 @@ void Sim::direct_calc(Body& body)
 
 bool vector_within(Eigen::Vector3d v, Eigen::Vector3d a, Eigen::Vector3d b)
 {
-    //std::cout << v << "(vec)\n\n";
-    //std::cout << a << "\n\n";
-    //std::cout << b << "\n\n";
-    ////std::cout << (v[0] > a[0] && v[1] > a[1] && v[2] > a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2]) << "\n";
-    return v[0] >= a[0] && v[1] >= a[1] && v[2] >= a[2] && v[0] < b[0] && v[1] < b[1] && v[2] < b[2];
+    return v[0] >= a[0] && v[1] >= a[1] && v[2] >= a[2]
+        && v[0]  < b[0] && v[1]  < b[1] && v[2]  < b[2];
 }
 
 void Sim::initialize_children(struct Node& node)
@@ -81,23 +76,13 @@ void Sim::initialize_children(struct Node& node)
                                   node.min[2] + (half[2] * ((i & 4) == 4)));
         node.children[i] = new Node (child_min, child_min + half, {0, 0, 0}, 0, nullptr, nullptr);
     }
-    //std::cout << "done" << "\n";
     for (int i = 0; i < 8; i++) {
         if (vector_within(node.body->position, node.children[i]->min, node.children[i]->max)) {
-            //std::cout << "hi2" << "\n";
-            //node.children[i]->body = node.body;
-            //std::cout << i << "\n";
-            //std::cout << node.children[i] << "\n";
             node.children[i]->body = node.body;
-            //std::cout << "hi3" << "\n";
-            //std::cout << &node << " " << &octree[0] << "\n";
             node.body = nullptr;
             break;
         }
     }
-    //std::cout << node.children << "\n\n";
-    //for (int i = 0; i < 8; i++) //std::cout << node.children[i] << "\n";
-    //std::cout << "??!" << "\n";
 }
 
 void Sim::initialize_octree()
@@ -118,35 +103,21 @@ void Sim::initialize_octree()
 
 void Sim::insert_body(Body& body)
 {
-    //std::cout << body.position << "pos\n";
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
         Node* current = stack.top();
         stack.pop();
-        if (!vector_within(body.position, current->min, current->max)) {
-            continue;
-        }
-        //std::cout << "Made it!" << "\n";
-        //std::cout << current->body << " " << current->children[0] << "\n";
+        if (!vector_within(body.position, current->min, current->max)) continue;
         if (current->body == nullptr && current->children[0] == nullptr) {
-            //std::cout << "hmm" << "\n";
             current->body = &body;
             break;
         }
-        //std::cout << "uhoh" << "\n";
         if (current->body != nullptr && current->children[0] == nullptr) {
-            //std::cout << current->children << "\n\n";
-            //for (int i = 0; i < 8; i++) //std::cout << current->children[i] << "\n";
-            //std::cout << current << " " << &octree[0] << "\n";
             initialize_children(*current);
         }
-        for (int i = 0; i < 8; i++) {
-            stack.push(current->children[i]);
-        }
-        //std::cout << "23" << "\n";
+        for (int i = 0; i < 8; i++) stack.push(current->children[i]);
     }
-    //std::cout << "??" << "\n";
 }
 
 void Sim::calc_center_mass(Node& node)
@@ -191,12 +162,8 @@ void Sim::tree_calc(Body& body)
             sum += (current->center - body.position).normalized() * magnitude;
             continue;
         }
-        //std::cout << "\nCurrently at " << current << " and stack.size() == " << stack.size() << "\n\n";
         if (current->children[0] == nullptr) continue;
-        for (int i = 0; i < 8; i++) {
-            //std::cout << "Pushing " << current->children[i] << "\n";
-            stack.push(current->children[i]);
-        }
+        for (int i = 0; i < 8; i++) stack.push(current->children[i]);
     }
     body.net_force = sum;
 }
@@ -208,13 +175,12 @@ void Sim::dump_tree()
     while (stack.size()) {
         Node* current = stack.top();
         stack.pop();
-        //std::cout << current << "\n";
-        //std::cout << current->body << '\n' << current->mass << '\n' << current->center << "\n\n";
+        std::cout << current << "\n";
+        std::cout << current->body << '\n'
+                  << current->mass << '\n'
+                  << current->center << "\n\n";
         if (current->children[0] == nullptr) continue;
-        for (Node* child : current->children) {
-            //std::cout << "Pushing " << child << "\n";
-            stack.push(child);
-        }
+        for (Node* child : current->children) stack.push(child);
     }
 }
 
@@ -226,9 +192,7 @@ void Sim::purge_tree()
         Node* current = stack.top();
         stack.pop();        
         if (current->children[0] == nullptr) continue;
-        for (Node* child : current->children) {
-            stack.push(child);
-        }
+        for (Node* child : current->children) stack.push(child);
         delete current;
     }
 }
