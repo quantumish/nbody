@@ -35,6 +35,7 @@ class Sim {
     TimeMethod time_method;
 
     void initialize_octree();
+    void dump_tree();
     void insert_body(Body& body);
     void initialize_children(Node& node);
     void calc_center_mass(Node& node);

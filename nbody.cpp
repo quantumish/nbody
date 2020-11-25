@@ -121,31 +121,29 @@ void Sim::insert_body(Body& body)
     std::stack<Node*> stack;
     stack.push(&octree[0]);
     while (stack.size()) {
-        if (!vector_within(body.position, stack.top()->min, stack.top()->max)) {
-            stack.pop();
+        Node* current = stack.top();
+        stack.pop();
+        if (!vector_within(body.position, current->min, current->max)) {
             continue;
         }
         std::cout << "Made it!" << "\n";
-        std::cout << stack.top()->body << " " << stack.top()->children[0] << "\n";
-        if (stack.top()->body == nullptr && stack.top()->children[0] == nullptr) {
+        std::cout << current->body << " " << current->children[0] << "\n";
+        if (current->body == nullptr && current->children[0] == nullptr) {
             std::cout << "hmm" << "\n";
-            stack.top()->body = &body;
+            current->body = &body;
             break;
         }
         std::cout << "uhoh" << "\n";
-        if (stack.top()->body != nullptr && stack.top()->children[0] == nullptr) {
-            std::cout << stack.top()->children << "\n\n";
-            for (int i = 0; i < 8; i++) std::cout << stack.top()->children[i] << "\n";
-            std::cout << stack.top() << " " << &octree[0] << "\n";
-            initialize_children(*stack.top());
+        if (current->body != nullptr && current->children[0] == nullptr) {
+            std::cout << current->children << "\n\n";
+            for (int i = 0; i < 8; i++) std::cout << current->children[i] << "\n";
+            std::cout << current << " " << &octree[0] << "\n";
+            initialize_children(*current);
         }
-        //std::cout << stack.top()->children[2] << "\n\n";
-        Node* current = stack.top();
         for (int i = 0; i < 8; i++) {
             stack.push(current->children[i]);
         }
         std::cout << "23" << "\n";
-        stack.pop();
     }
     std::cout << "??" << "\n";
 }
@@ -179,22 +177,39 @@ void Sim::tree_calc(Body& body)
                            pow(body.position[1] - stack.top()->center[1],2) +
                            pow(body.position[2] - stack.top()->center[2],2));
     while (stack.size()) {
+        Node* current = stack.top();
+        stack.pop();
         double maxdim = 0;
         for (int i = 0; i < 3; i++) {
-            if (stack.top()->max[i]-stack.top()->min[i] > maxdim) {
-                maxdim = stack.top()->max[i]-stack.top()->min[i];
+            if (current->max[i]-current->min[i] > maxdim) {
+                maxdim = current->max[i]-current->min[i];
             }
         } 
         if (distance/maxdim >= THETA) {
-            double magnitude = (GRAV_CONST * body.mass * stack.top()->mass)/(pow(distance,2));
-            sum += (stack.top()->center - body.position).normalized() * magnitude;
-            stack.pop();
+            double magnitude = (GRAV_CONST * body.mass * current->mass)/(pow(distance,2));
+            sum += (current->center - body.position).normalized() * magnitude;
             continue;
         }
-        for (int i = 0; i < 8; i++) stack.push(stack.top()->children[i]);
-        stack.pop();
+        for (int i = 0; i < 8; i++) stack.push(current->children[i]);
     }
     body.net_force = sum;
+}
+
+void Sim::dump_tree()
+{
+    std::stack<Node*> stack;
+    stack.push(octree);
+    while (stack.size()) {
+        Node* current = stack.top();
+        stack.pop();
+        std::cout << current << "\n";
+        std::cout << current->body << '\n' << current->mass << '\n' << current->center << "\n\n";
+        if (current->children[0] == nullptr) continue;
+        for (Node* child : current->children) {
+            std::cout << "Pushing " << child << "\n";
+            stack.push(child);
+        }
+    }
 }
 
 void Sim::calc_net_force(Body& body)
@@ -225,6 +240,7 @@ void Sim::update()
         initialize_octree();
         for (Body& body : bodies) insert_body(body);
         calc_center_mass(octree[0]);
+        dump_tree();
     }
     for (Body& body : bodies) {
         switch (time_method) {
